@@ -1,7 +1,19 @@
-# Tauri + Vanilla
+# GoXLR Utility UI Wrapper
+This is a simple app that wraps the GoXLR Utilities' UI into an independent browser based on Tauri.
 
-This template should help get you started developing with Tauri in vanilla HTML, CSS and Javascript.
+## Support
+This is relatively unsupported, and is primarily a proof of concept, please treat it as such :)
 
-## Recommended IDE Setup
+## Building
+Simple instructions:
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+* Install Rust via rustup
+* Run `cargo install tauri-cli`
+* Run `cargo tauri build`
+
+The build may require a few packages from your repo, under linux `webkit2gtk`, `libappindicator` and `gtk` may be
+required for building, [This Link](https://tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux) should
+have all the info needed for building on your system.
+
+The binaries should be produced in `src-tauri/target/release/bundle`, I use the AppImage, you can do what
+you want :)
