@@ -21,7 +21,10 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "appimage": {
+        "bundleMediaFramework": true
+      }
     },
     "security": {
       "csp": null
