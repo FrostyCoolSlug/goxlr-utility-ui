@@ -23,12 +23,16 @@ url = "2.3.1"
 tungstenite = "0.19.0"
 futures = "0.3.28"
 
+# Used for displaying messages
+#msgbox = "0.7.0"
 
 serde = { version = "1.0", features = ["derive"] }
-#serde_json = "1.0"
 tauri = { version = "2.0.0-alpha" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-window-state = "2.0.0-alpha.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3.9", features = ["winuser"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

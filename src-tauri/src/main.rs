@@ -8,11 +8,14 @@ use goxlr_ipc::{DaemonRequest, DaemonResponse};
 use interprocess::local_socket::tokio::LocalSocketStream;
 use interprocess::local_socket::NameTypeSupport;
 use serde::{Deserialize, Serialize};
-use std::process::exit;
+use std::iter::once;
+use std::ptr::null_mut;
 use std::thread;
 use tauri::{AppHandle, Manager, Wry};
 use tungstenite::{connect, Message};
 use url::Url;
+use winapi::shared::minwindef::UINT;
+use winapi::um::winuser::{MessageBoxW, MB_ICONERROR};
 
 static WINDOW_NAME: &str = "main";
 static SHOW_EVENT_NAME: &str = "si-event";
@@ -76,8 +79,16 @@ async fn get_goxlr_host() -> String {
     .await;
 
     if connection.is_err() {
-        // TODO: Show Error Message.
-        exit(-1);
+        // We only support windows for these currently..
+        #[cfg(target_os = "windows")]
+        {
+            let _ = show_dialog(
+                "Unable to Launch UI".to_string(),
+                "The GoXLR Utility must be running before launching this app.".to_string(),
+                MB_ICONERROR,
+            );
+        }
+        panic!("Unable to connect to the GoXLR NameSpace / Unix Socket");
     }
 
     let socket: Socket<DaemonResponse, DaemonRequest> = Socket::new(connection.unwrap());
@@ -102,8 +113,21 @@ fn goxlr_utility_monitor(host: String, handle: AppHandle<Wry>) {
     let url = Url::parse(address.as_str()).expect("Bad URL Provided");
 
     // Attempt to connect to the websocket..
-    let (mut socket, _) = connect(url).expect("Unable to Connect to the GoXLR Websocket");
+    let result = connect(url);
+    if result.is_err() {
+        // We only support windows for these currently..
+        #[cfg(target_os = "windows")]
+        {
+            let _ = show_dialog(
+                "Unable to Launch UI".to_string(),
+                "Unable to connect to the GoXLR Utility".to_string(),
+                MB_ICONERROR,
+            );
+            panic!("Unable to Connect to the Utility");
+        }
+    }
 
+    let (mut socket, _) = result.unwrap();
     thread::spawn(move || {
         // Anything that's not a valid message, or is a 'Close' message breaks the loop.
         while let Ok(message) = socket.read_message() {
@@ -115,4 +139,17 @@ fn goxlr_utility_monitor(host: String, handle: AppHandle<Wry>) {
         // Loop Ended, this happens when socket is closed.
         handle.trigger_global(STOP_EVENT_NAME, None);
     });
+}
+
+#[cfg(target_os = "windows")]
+fn show_dialog(title: String, message: String, icon: UINT) -> Result<(), String> {
+    let lp_title: Vec<u16> = title.encode_utf16().chain(once(0)).collect();
+    let lp_message: Vec<u16> = message.encode_utf16().chain(once(0)).collect();
+
+    unsafe {
+        match MessageBoxW(null_mut(), lp_message.as_ptr(), lp_title.as_ptr(), icon) {
+            0 => Err("Unable to Create Dialog".to_string()),
+            _ => Ok(()),
+        }
+    }
 }
