@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use directories::ProjectDirs;
+use futures::executor::block_on;
 use goxlr_ipc::client::Client;
 use goxlr_ipc::clients::ipc::ipc_client::IPCClient;
 use goxlr_ipc::clients::ipc::ipc_socket::Socket;
@@ -31,8 +32,7 @@ static NAMED_PIPE: &str = "@goxlr.socket";
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Host(String);
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
         if args[1] == "--install" {
@@ -45,8 +45,6 @@ async fn main() {
         }
     }
 
-    let base_host = get_goxlr_host().await;
-
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             // Trigger a global event if something (eg, the util) attempts to open this again.
@@ -54,7 +52,7 @@ async fn main() {
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
-            let base_inner = base_host.clone();
+            let base_host = block_on(get_goxlr_host());
             let global_window = app.handle();
             app.listen_global(SHOW_EVENT_NAME, move |_| {
                 // Do anything and everything to make sure this Window is visible and focused!
@@ -71,10 +69,10 @@ async fn main() {
             });
 
             // Spawn the GoXLR Utility Monitor..
-            goxlr_utility_monitor(base_host, app.handle());
+            goxlr_utility_monitor(base_host.clone(), app.handle());
 
             let window = app.get_window(WINDOW_NAME).unwrap();
-            let url = format!("http://{}/", base_inner);
+            let url = format!("http://{}/", base_host);
             let _ = window.eval(format!("window.location.replace('{}')", url).as_str());
             Ok(())
         })
@@ -96,14 +94,15 @@ async fn get_goxlr_host() -> String {
     .await;
 
     if connection.is_err() {
+        let message = format!(
+            "The GoXLR Utility must be running before launching this app.\r\n{}",
+            connection.err().unwrap()
+        );
+
         // We only support windows for these currently..
         #[cfg(target_os = "windows")]
         {
-            let _ = show_dialog(
-                "Unable to Launch UI".to_string(),
-                "The GoXLR Utility must be running before launching this app.".to_string(),
-                Icon::ERROR,
-            );
+            let _ = show_dialog("Unable to Launch UI".to_string(), message, Icon::ERROR);
         }
         panic!("Unable to connect to the GoXLR NameSpace / Unix Socket");
     }
