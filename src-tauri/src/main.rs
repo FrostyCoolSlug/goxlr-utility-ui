@@ -166,7 +166,7 @@ fn manage(install: bool) {
             return;
         }
         create_settings_path(&path);
-        json!("{}")
+        json!({ "activate": Value::Null })
     } else {
         load_settings(&path)
     };
@@ -201,7 +201,8 @@ fn write_settings(path: &PathBuf, mut value: Value, install: bool) {
     let exe = env::current_exe().unwrap();
 
     value["activate"] = if install {
-        Value::String(String::from(exe.to_string_lossy()))
+        let test = format!("\"{}\"", exe.to_string_lossy());
+        Value::String(test)
     } else {
         Value::Null
     };
