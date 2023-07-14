@@ -16,6 +16,9 @@ tauri-build = { version = "2.0.0-alpha", features = [] }
 # Useful GoXLR Stuff..
 tokio = { version = "1.29.1", features = ["full"] }
 interprocess = { version = "1.2.1", features = ["tokio_support"] }
+serde = { version = "1.0", features = ["derive"] }
+
+# GoXLR Shared Items
 goxlr-ipc = { git = "https://github.com/GoXLR-on-Linux/goxlr-utility" }
 
 # Websocket Handling Stuff..
@@ -23,10 +26,10 @@ url = "2.3.1"
 tungstenite = "0.19.0"
 futures = "0.3.28"
 
-# Used for displaying messages
-#msgbox = "0.7.0"
+# Used for Install / Remove..
+serde_json = "1.0.100"
+directories = "5.0.1"
 
-serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "2.0.0-alpha" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-window-state = "2.0.0-alpha.0"

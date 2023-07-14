@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use directories::ProjectDirs;
 use goxlr_ipc::client::Client;
 use goxlr_ipc::clients::ipc::ipc_client::IPCClient;
 use goxlr_ipc::clients::ipc::ipc_socket::Socket;
@@ -8,14 +9,16 @@ use goxlr_ipc::{DaemonRequest, DaemonResponse};
 use interprocess::local_socket::tokio::LocalSocketStream;
 use interprocess::local_socket::NameTypeSupport;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::fs::{create_dir_all, File};
+use std::io::ErrorKind;
 use std::iter::once;
+use std::path::{Path, PathBuf};
 use std::ptr::null_mut;
-use std::thread;
+use std::{env, thread};
 use tauri::{AppHandle, Manager, Wry};
 use tungstenite::{connect, Message};
 use url::Url;
-use winapi::shared::minwindef::UINT;
-use winapi::um::winuser::{MessageBoxW, MB_ICONERROR};
 
 static WINDOW_NAME: &str = "main";
 static SHOW_EVENT_NAME: &str = "si-event";
@@ -30,6 +33,18 @@ struct Host(String);
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() == 2 {
+        if args[1] == "--install" {
+            manage(true);
+            return;
+        }
+        if args[1] == "--remove" {
+            manage(false);
+            return;
+        }
+    }
+
     let base_host = get_goxlr_host().await;
 
     tauri::Builder::default()
@@ -85,7 +100,7 @@ async fn get_goxlr_host() -> String {
             let _ = show_dialog(
                 "Unable to Launch UI".to_string(),
                 "The GoXLR Utility must be running before launching this app.".to_string(),
-                MB_ICONERROR,
+                Icon::ERROR,
             );
         }
         panic!("Unable to connect to the GoXLR NameSpace / Unix Socket");
@@ -121,7 +136,7 @@ fn goxlr_utility_monitor(host: String, handle: AppHandle<Wry>) {
             let _ = show_dialog(
                 "Unable to Launch UI".to_string(),
                 "Unable to connect to the GoXLR Utility".to_string(),
-                MB_ICONERROR,
+                Icon::ERROR,
             );
             panic!("Unable to Connect to the Utility");
         }
@@ -141,8 +156,81 @@ fn goxlr_utility_monitor(host: String, handle: AppHandle<Wry>) {
     });
 }
 
+// Installs this app into the util..
+fn manage(install: bool) {
+    println!("Locating Settings File..");
+    let path = get_settings_file();
+    let json = if !&path.exists() {
+        if !install {
+            // If we're removing, and the path is missing, do nothing.
+            return;
+        }
+        create_settings_path(&path);
+        json!("{}")
+    } else {
+        load_settings(&path)
+    };
+    write_settings(&path, json, install);
+}
+
+fn create_settings_path(path: &Path) {
+    println!("Creating path if needed..");
+    if let Some(parent) = path.parent() {
+        if let Err(e) = create_dir_all(parent) {
+            if e.kind() != ErrorKind::AlreadyExists {
+                panic!("Unable to Create Project Directory");
+            }
+        }
+    }
+}
+
+fn load_settings(path: &PathBuf) -> Value {
+    println!("Loading Existing Settings..");
+    let path_str = String::from(path.to_string_lossy());
+    match File::open(path) {
+        Ok(reader) => serde_json::from_reader(reader)
+            .unwrap_or_else(|_| panic!("Could not parse daemon settings file at {}", path_str)),
+        Err(_) => panic!(
+            "Could not open daemon settings file for reading at {}",
+            path_str
+        ),
+    }
+}
+
+fn write_settings(path: &PathBuf, mut value: Value, install: bool) {
+    let exe = env::current_exe().unwrap();
+
+    value["activate"] = if install {
+        Value::String(String::from(exe.to_string_lossy()))
+    } else {
+        Value::Null
+    };
+
+    let path_str = String::from(path.to_string_lossy());
+    let writer = File::create(path).unwrap_or_else(|_| {
+        panic!(
+            "Could not open daemon settings file for writing at {}",
+            path_str
+        )
+    });
+    serde_json::to_writer_pretty(writer, &value)
+        .unwrap_or_else(|_| panic!("Could not write to daemon settings file at {}", path_str));
+}
+
+fn get_settings_file() -> PathBuf {
+    let proj_dirs = ProjectDirs::from("org", "GoXLR-on-Linux", "GoXLR-Utility")
+        .expect("Couldn't find project directories");
+    proj_dirs.config_dir().join("settings.json")
+}
+
 #[cfg(target_os = "windows")]
-fn show_dialog(title: String, message: String, icon: UINT) -> Result<(), String> {
+fn show_dialog(title: String, message: String, icon: Icon) -> Result<(), String> {
+    use winapi::um::winuser::{MessageBoxW, MB_ICONERROR};
+
+    let icon = match icon {
+        Icon::ERROR => MB_ICONERROR,
+    };
+
     let lp_title: Vec<u16> = title.encode_utf16().chain(once(0)).collect();
     let lp_message: Vec<u16> = message.encode_utf16().chain(once(0)).collect();
 
@@ -152,4 +240,9 @@ fn show_dialog(title: String, message: String, icon: UINT) -> Result<(), String>
             _ => Ok(()),
         }
     }
+}
+
+#[cfg(target_os = "windows")]
+enum Icon {
+    ERROR,
 }
