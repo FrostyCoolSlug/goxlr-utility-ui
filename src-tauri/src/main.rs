@@ -54,6 +54,7 @@ async fn main() {
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
+            let base_inner = base_host.clone();
             let global_window = app.handle();
             app.listen_global(SHOW_EVENT_NAME, move |_| {
                 // Do anything and everything to make sure this Window is visible and focused!
@@ -73,7 +74,8 @@ async fn main() {
             goxlr_utility_monitor(base_host, app.handle());
 
             let window = app.get_window(WINDOW_NAME).unwrap();
-            let _ = window.eval("window.location.replace('http://localhost:14564')");
+            let url = format!("http://{}/", base_inner);
+            let _ = window.eval(format!("window.location.replace('{}')", url).as_str());
             Ok(())
         })
         .on_window_event(|event| {
@@ -120,11 +122,10 @@ async fn get_goxlr_host() -> String {
 }
 
 fn goxlr_utility_monitor(host: String, handle: AppHandle<Wry>) {
-    print!("Spawining the Monitor..");
+    print!("Spawning the Monitor..");
 
     // Grab and Parse the URL..
     let address = format!("ws://{}/api/websocket", host);
-    println!("Err: {}", address);
     let url = Url::parse(address.as_str()).expect("Bad URL Provided");
 
     // Attempt to connect to the websocket..
