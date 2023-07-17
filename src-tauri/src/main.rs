@@ -32,7 +32,8 @@ static NAMED_PIPE: &str = "@goxlr.socket";
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Host(String);
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
         if args[1] == "--install" {
