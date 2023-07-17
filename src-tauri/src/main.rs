@@ -2,7 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use directories::ProjectDirs;
-use futures::executor::block_on;
 use goxlr_ipc::client::Client;
 use goxlr_ipc::clients::ipc::ipc_client::IPCClient;
 use goxlr_ipc::clients::ipc::ipc_socket::Socket;
@@ -11,17 +10,18 @@ use interprocess::local_socket::tokio::LocalSocketStream;
 use interprocess::local_socket::NameTypeSupport;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::ErrorKind;
 use std::iter::once;
 use std::path::{Path, PathBuf};
 use std::ptr::null_mut;
-use std::{env, thread};
 use tauri::{AppHandle, Manager, Wry};
 use tungstenite::{connect, Message};
 use url::Url;
 
 static WINDOW_NAME: &str = "main";
+static READY_EVENT_NAME: &str = "READY";
 static SHOW_EVENT_NAME: &str = "si-event";
 static STOP_EVENT_NAME: &str = "seppuku";
 
@@ -53,7 +53,7 @@ async fn main() {
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
-            let base_host = block_on(get_goxlr_host());
+            //let base_host = block_on(get_goxlr_host());
             let global_window = app.handle();
             app.listen_global(SHOW_EVENT_NAME, move |_| {
                 // Do anything and everything to make sure this Window is visible and focused!
@@ -63,18 +63,21 @@ async fn main() {
                 let _ = window.set_focus();
             });
 
+            let ready_handle = app.handle();
+            app.listen_global(READY_EVENT_NAME, move |data| {
+                if let Some(address) = data.payload() {
+                    let window = ready_handle.get_window(WINDOW_NAME).unwrap();
+                    let _ = window.eval(format!("window.location.replace('{}')", address).as_str());
+                }
+            });
+
             let shutdown_handle = app.handle();
             app.listen_global(STOP_EVENT_NAME, move |_| {
                 // Terminate the App..
                 shutdown_handle.exit(0);
             });
+            tokio::task::spawn(goxlr_utility_monitor(app.handle()));
 
-            // Spawn the GoXLR Utility Monitor..
-            goxlr_utility_monitor(base_host.clone(), app.handle());
-
-            let window = app.get_window(WINDOW_NAME).unwrap();
-            let url = format!("http://{}/", base_host);
-            let _ = window.eval(format!("window.location.replace('{}')", url).as_str());
             Ok(())
         })
         .on_window_event(|event| {
@@ -87,13 +90,14 @@ async fn main() {
         .expect("error running tauri app");
 }
 
-async fn get_goxlr_host() -> String {
+async fn get_goxlr_host() -> Result<String, String> {
     let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
         NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
     })
     .await;
 
+    println!("Hi?");
     if connection.is_err() {
         let message = format!(
             "The GoXLR Utility must be running before launching this app.\r\n{}",
@@ -105,7 +109,9 @@ async fn get_goxlr_host() -> String {
         {
             let _ = show_dialog("Unable to Launch UI".to_string(), message, Icon::ERROR);
         }
-        panic!("Unable to connect to the GoXLR NameSpace / Unix Socket");
+        return Err(String::from(
+            "Unable to connect to the GoXLR Namespace / Unix Socket",
+        ));
     }
 
     let socket: Socket<DaemonResponse, DaemonRequest> = Socket::new(connection.unwrap());
@@ -118,15 +124,24 @@ async fn get_goxlr_host() -> String {
         "localhost".to_string()
     };
 
-    format!("{}:{}", host, status.port)
+    Ok(format!("{}:{}", host, status.port))
 }
 
-fn goxlr_utility_monitor(host: String, handle: AppHandle<Wry>) {
+async fn goxlr_utility_monitor(handle: AppHandle<Wry>) {
     print!("Spawning the Monitor..");
 
+    // We're going to dive straight into the thread here..
+    let host_result = get_goxlr_host().await;
+    if host_result.is_err() {
+        handle.trigger_global(STOP_EVENT_NAME, None);
+        return;
+    }
+    let host = host_result.unwrap();
+
     // Grab and Parse the URL..
-    let address = format!("ws://{}/api/websocket", host);
-    let url = Url::parse(address.as_str()).expect("Bad URL Provided");
+    let ws_address = format!("ws://{}/api/websocket", host);
+    let http_address = format!("http://{}/", host);
+    let url = Url::parse(ws_address.as_str()).expect("Bad URL Provided");
 
     // Attempt to connect to the websocket..
     let result = connect(url);
@@ -139,22 +154,26 @@ fn goxlr_utility_monitor(host: String, handle: AppHandle<Wry>) {
                 "Unable to connect to the GoXLR Utility".to_string(),
                 Icon::ERROR,
             );
-            panic!("Unable to Connect to the Utility");
+            handle.trigger_global(STOP_EVENT_NAME, None);
+            return;
         }
     }
 
+    // Got a good connection, grab the socket..
     let (mut socket, _) = result.unwrap();
-    thread::spawn(move || {
-        // Anything that's not a valid message, or is a 'Close' message breaks the loop.
-        while let Ok(message) = socket.read_message() {
-            if let Message::Close(..) = message {
-                // Break the loop so we can shutdown the app
-                break;
-            }
+
+    // Trigger the event that lets the window know we're ready..
+    handle.trigger_global(READY_EVENT_NAME, Some(http_address));
+
+    // Anything that's not a valid message, or is a 'Close' message breaks the loop.
+    while let Ok(message) = socket.read_message() {
+        if let Message::Close(..) = message {
+            // Break the loop so we can shutdown the app
+            break;
         }
-        // Loop Ended, this happens when socket is closed.
-        handle.trigger_global(STOP_EVENT_NAME, None);
-    });
+    }
+    // Loop Ended, this happens when socket is closed.
+    handle.trigger_global(STOP_EVENT_NAME, None);
 }
 
 // Installs this app into the util..

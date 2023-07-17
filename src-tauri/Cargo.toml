@@ -24,7 +24,6 @@ goxlr-ipc = { git = "https://github.com/GoXLR-on-Linux/goxlr-utility" }
 # Websocket Handling Stuff..
 url = "2.3.1"
 tungstenite = "0.19.0"
-futures = "0.3.28"
 
 # Used for Install / Remove..
 serde_json = "1.0.100"
