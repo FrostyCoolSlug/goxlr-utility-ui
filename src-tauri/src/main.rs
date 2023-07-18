@@ -215,7 +215,12 @@ fn load_settings(path: &PathBuf) -> Value {
 }
 
 fn write_settings(path: &PathBuf, mut value: Value, install: bool) {
-    let exe = env::current_exe().unwrap();
+    let exe = if let Ok(app_image) = env::var("APPIMAGE") {
+        println!("Using AppImage at {}", &app_image);
+        PathBuf::from(app_image)
+    } else {
+        env::current_exe().unwrap()
+    };
 
     value["activate"] = if install {
         Value::String(format!("\"{}\"", exe.to_string_lossy()))
