@@ -1,9 +1,16 @@
 # GoXLR Utility UI Wrapper
 This is a simple app which uses tauri to wrap an app around the GoXLR Utilities configuration page.
 
-The path to this executable should be set in the `"activate"` key of the utilities settings.json (while 
-the utility is shut down), which will cause the utility to run this binary when the tray icon is clicked,
-or the 'GoXLR Utility' item of your Application Menu is selected.
+To install, shutdown the GoXLR Utility and run the following commands (replacing `goxlr-utility-ui` with the
+correct binary for your platform):
+
+
+`goxlr-utility-ui --install`
+
+Then start up the utility, it should immediately start using the UI instead of a web browser, if it doesn't work
+or you encouter issues with it, it can be removed by shutting down the GoXLR Utility and running:
+
+`goxlr-utility-ui --remove`
 
 This app is bound to the runtime of the Utility, once started it'll remain open until the utility exits.
 If you press the 'Close' button on the Window, it'll simply hide itself away in the background until
