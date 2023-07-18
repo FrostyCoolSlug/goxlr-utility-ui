@@ -13,9 +13,9 @@ use serde_json::{json, Value};
 use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::ErrorKind;
-use std::iter::once;
+
 use std::path::{Path, PathBuf};
-use std::ptr::null_mut;
+
 use tauri::{AppHandle, Manager, Wry};
 use tungstenite::{connect, Message};
 use url::Url;
@@ -53,7 +53,6 @@ async fn main() {
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
-            //let base_host = block_on(get_goxlr_host());
             let global_window = app.handle();
             app.listen_global(SHOW_EVENT_NAME, move |_| {
                 // Do anything and everything to make sure this Window is visible and focused!
@@ -95,18 +94,16 @@ async fn get_goxlr_host() -> Result<String, String> {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
         NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
     })
-    .await;
+        .await;
 
-    println!("Hi?");
     if connection.is_err() {
-        let message = format!(
-            "The GoXLR Utility must be running before launching this app.\r\n{}",
-            connection.err().unwrap()
-        );
-
         // We only support windows for these currently..
         #[cfg(target_os = "windows")]
         {
+            let message = format!(
+                "The GoXLR Utility must be running before launching this app.\r\n{}",
+                connection.err().unwrap()
+            );
             let _ = show_dialog("Unable to Launch UI".to_string(), message, Icon::ERROR);
         }
         return Err(String::from(
@@ -140,7 +137,8 @@ async fn goxlr_utility_monitor(handle: AppHandle<Wry>) {
 
     // Grab and Parse the URL..
     let ws_address = format!("ws://{}/api/websocket", host);
-    let http_address = format!("http://{}/", host);
+    //let http_address = format!("http://{}/", host);
+    let http_address = format!("http://localhost:8080/");
     let url = Url::parse(ws_address.as_str()).expect("Bad URL Provided");
 
     // Attempt to connect to the websocket..
@@ -221,8 +219,7 @@ fn write_settings(path: &PathBuf, mut value: Value, install: bool) {
     let exe = env::current_exe().unwrap();
 
     value["activate"] = if install {
-        let test = format!("\"{}\"", exe.to_string_lossy());
-        Value::String(test)
+        Value::String(format!("\"{}\"", exe.to_string_lossy()))
     } else {
         Value::Null
     };
@@ -246,6 +243,8 @@ fn get_settings_file() -> PathBuf {
 
 #[cfg(target_os = "windows")]
 fn show_dialog(title: String, message: String, icon: Icon) -> Result<(), String> {
+    use std::iter::once;
+    use std::ptr::null_mut;
     use winapi::um::winuser::{MessageBoxW, MB_ICONERROR};
 
     let icon = match icon {
