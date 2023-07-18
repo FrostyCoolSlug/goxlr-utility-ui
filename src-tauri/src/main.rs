@@ -94,7 +94,7 @@ async fn get_goxlr_host() -> Result<String, String> {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
         NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
     })
-        .await;
+    .await;
 
     if connection.is_err() {
         // We only support windows for these currently..
@@ -137,8 +137,7 @@ async fn goxlr_utility_monitor(handle: AppHandle<Wry>) {
 
     // Grab and Parse the URL..
     let ws_address = format!("ws://{}/api/websocket", host);
-    //let http_address = format!("http://{}/", host);
-    let http_address = format!("http://localhost:8080/");
+    let http_address = format!("http://{}/", host);
     let url = Url::parse(ws_address.as_str()).expect("Bad URL Provided");
 
     // Attempt to connect to the websocket..
