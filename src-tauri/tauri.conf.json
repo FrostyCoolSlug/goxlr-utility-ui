@@ -27,7 +27,15 @@
       }
     },
     "security": {
-      "csp": null
+      "csp": null,
+      "dangerousRemoteDomainIpcAccess": [
+        {
+          "scheme": "http",
+          "domain": "localhost",
+          "windows": ["main"],
+          "plugins": ["shell"]
+        }
+      ]
     },
     "windows": [
       {
@@ -40,5 +48,8 @@
     ]
   },
   "plugins": {
+    "shell": {
+      "open": true
+    }
   }
 }

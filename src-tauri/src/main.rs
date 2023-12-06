@@ -16,7 +16,7 @@ use std::io::ErrorKind;
 
 use std::path::{Path, PathBuf};
 
-use tauri::{AppHandle, Manager, Wry};
+use tauri::{AppHandle, Manager};
 use tungstenite::{connect, Message};
 use url::Url;
 
@@ -49,11 +49,12 @@ async fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             // Trigger a global event if something (eg, the util) attempts to open this again.
-            app.trigger_global(SHOW_EVENT_NAME, None);
+            let _ = app.emit(SHOW_EVENT_NAME, None::<String>);
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let global_window = app.handle();
+            let global_window = app.handle().clone();
             app.listen_global(SHOW_EVENT_NAME, move |_| {
                 // Do anything and everything to make sure this Window is visible and focused!
                 let window = global_window.get_window(WINDOW_NAME).unwrap();
@@ -62,20 +63,19 @@ async fn main() {
                 let _ = window.set_focus();
             });
 
-            let ready_handle = app.handle();
+            let ready_handle = app.handle().clone();
             app.listen_global(READY_EVENT_NAME, move |data| {
-                if let Some(address) = data.payload() {
-                    let window = ready_handle.get_window(WINDOW_NAME).unwrap();
-                    let _ = window.eval(format!("window.location.replace('{}')", address).as_str());
-                }
+                let address = data.payload();
+                let window = ready_handle.get_window(WINDOW_NAME).unwrap();
+                let _ = window.eval(format!("window.location.replace({})", address).as_str());
             });
 
-            let shutdown_handle = app.handle();
+            let shutdown_handle = app.handle().clone();
             app.listen_global(STOP_EVENT_NAME, move |_| {
                 // Terminate the App..
                 shutdown_handle.exit(0);
             });
-            tokio::task::spawn(goxlr_utility_monitor(app.handle()));
+            tokio::task::spawn(goxlr_utility_monitor(app.handle().clone()));
 
             Ok(())
         })
@@ -94,7 +94,7 @@ async fn get_goxlr_host() -> Result<String, String> {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
         NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
     })
-    .await;
+        .await;
 
     if connection.is_err() {
         // We only support windows for these currently..
@@ -124,13 +124,13 @@ async fn get_goxlr_host() -> Result<String, String> {
     Ok(format!("{}:{}", host, status.port))
 }
 
-async fn goxlr_utility_monitor(handle: AppHandle<Wry>) {
+async fn goxlr_utility_monitor(handle: AppHandle) {
     print!("Spawning the Monitor..");
 
     // We're going to dive straight into the thread here..
     let host_result = get_goxlr_host().await;
     if host_result.is_err() {
-        handle.trigger_global(STOP_EVENT_NAME, None);
+        let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
         return;
     }
     let host = host_result.unwrap();
@@ -151,7 +151,7 @@ async fn goxlr_utility_monitor(handle: AppHandle<Wry>) {
                 "Unable to connect to the GoXLR Utility".to_string(),
                 Icon::ERROR,
             );
-            handle.trigger_global(STOP_EVENT_NAME, None);
+            let _ = handle.emit(STOP_EVENT_NAME, None);
             return;
         }
     }
@@ -159,8 +159,11 @@ async fn goxlr_utility_monitor(handle: AppHandle<Wry>) {
     // Got a good connection, grab the socket..
     let (mut socket, _) = result.unwrap();
 
+    println!();
+    println!("{}", http_address);
+    println!();
     // Trigger the event that lets the window know we're ready..
-    handle.trigger_global(READY_EVENT_NAME, Some(http_address));
+    let _ = handle.emit(READY_EVENT_NAME, &http_address);
 
     // Anything that's not a valid message, or is a 'Close' message breaks the loop.
     while let Ok(message) = socket.read_message() {
@@ -170,7 +173,7 @@ async fn goxlr_utility_monitor(handle: AppHandle<Wry>) {
         }
     }
     // Loop Ended, this happens when socket is closed.
-    handle.trigger_global(STOP_EVENT_NAME, None);
+    let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
 }
 
 // Installs this app into the util..
