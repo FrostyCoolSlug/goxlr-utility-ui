@@ -166,7 +166,7 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
     let _ = handle.emit(READY_EVENT_NAME, &http_address);
 
     // Anything that's not a valid message, or is a 'Close' message breaks the loop.
-    while let Ok(message) = socket.read_message() {
+    while let Ok(message) = socket.read() {
         if let Message::Close(..) = message {
             // Break the loop so we can shutdown the app
             break;
