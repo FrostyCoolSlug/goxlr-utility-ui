@@ -94,7 +94,7 @@ async fn get_goxlr_host() -> Result<String, String> {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
         NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
     })
-        .await;
+    .await;
 
     if connection.is_err() {
         // We only support windows for these currently..
@@ -151,7 +151,7 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
                 "Unable to connect to the GoXLR Utility".to_string(),
                 Icon::ERROR,
             );
-            let _ = handle.emit(STOP_EVENT_NAME, None);
+            let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
             return;
         }
     }
