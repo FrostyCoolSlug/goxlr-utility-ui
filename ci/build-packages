@@ -27,7 +27,7 @@ cd src-tauri
 # a predictable location and then build the packages, which knows where to look.
 cargo build --release --all-features
 
-strip src-tauri/target/release/goxlr-utility-ui
+strip target/release/goxlr-utility-ui
 
 # Now, first build the .deb file (We don't need to recompile the code here)..
 cargo deb --no-build
