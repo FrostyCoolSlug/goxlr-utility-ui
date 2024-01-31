@@ -44,3 +44,43 @@ winapi = { version = "0.3.9", features = ["winuser"] }
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+
+[package.metadata.deb]
+name = "goxlr-utility-ui"
+assets = [
+    ["../target/release/goxlr-utility-ui", "usr/bin/", "755"],
+]
+section = "sound"
+priority = "optional"
+depends = "$auto"
+extended-description = """\
+A UI Wrapper for the GoXLR Utility
+"""
+revision = "1"
+
+## cargo generate-rpm support..
+[package.metadata.generate-rpm]
+name = "goxlr-utility-ui"
+assets = [
+    { source = "../target/release/goxlr-utility-ui", dest = "/usr/bin/goxlr-utility-ui", mode = "0755" },
+]
+
+# Because we build under Ubuntu in CI, generate-rpm is unable to calculate the dependencies required (no access
+# to rpm / yum), so we need to disable the auto and specify dependencies manually.
+auto-req = "no"
+
+[package.metadata.generate-rpm.requires]
+javascriptcoregtk4.0 = ">= 2.38.2"
+webkit2gtk4.0 = ">= 2.38.2"
+libxdo = ">= 3.20160805.1"
+libappindicator-gtk3 = ">= 10.10.0"
+xdotool = ">= 3.20160805.1"
+
+[package.metadata.generate-rpm.variants.suse]
+release = "suse"
+
+# SuSE has the same general dependencies as anything RHEL
+[package.metadata.generate-rpm.variants.suse.requires]
+webkit2gtk3 = ">= 2.26.4"
+xdotool = ">= 3.20160805.1"
+libappindicator = ">= 12.10.0"
