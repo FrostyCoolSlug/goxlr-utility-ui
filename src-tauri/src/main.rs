@@ -151,7 +151,7 @@ async fn get_goxlr_host() -> Result<String, String> {
             Err("Unable to retrieve GetStatus Response".into())
         }
     } else {
-        Err(String::from("Unable to obtain GoXLR Utility Address"))
+        Err("Unable to obtain GoXLR Utility Address".into())
     };
 }
 
