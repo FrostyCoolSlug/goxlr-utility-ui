@@ -302,5 +302,5 @@ fn show_dialog(title: String, message: String, icon: Icon) -> Result<(), String>
 
 #[cfg(target_os = "windows")]
 enum Icon {
-    ERROR,
+    Error,
 }
