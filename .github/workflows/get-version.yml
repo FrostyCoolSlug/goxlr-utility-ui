@@ -19,9 +19,6 @@ jobs:
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
 
-      - name: "Update Cargo.lock"
-        run: cargo update
-
       - name: "Store Version"
         id: store_version
         run: echo "version=$(cargo pkgid --manifest-path src-tauri/Cargo.toml | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
