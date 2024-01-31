@@ -28,8 +28,8 @@ cargo build --manifest-path=src-tauri/Cargo.toml --release --all-features
 strip src-tauri/target/release/goxlr-utility-ui
 
 # Now, first build the .deb file (We don't need to recompile the code here)..
-cargo --manifest-path=src-tauri/Cargo.toml deb --no-build
+cargo deb --manifest-path=src-tauri/Cargo.toml --no-build
 
 # Then the RPM
-cargo --manifest-path=src-tauri/Cargo.toml generate-rpm
-cargo --manifest-path=src-tauri/Cargo.toml generate-rpm --variant suse
+cargo generate-rpm --manifest-path=src-tauri/Cargo.toml
+cargo generate-rpm --manifest-path=src-tauri/Cargo.toml --variant suse
