@@ -1,11 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod ipc;
+
 use directories::ProjectDirs;
-use goxlr_ipc::client::Client;
-use goxlr_ipc::clients::ipc::ipc_client::IPCClient;
-use goxlr_ipc::clients::ipc::ipc_socket::Socket;
-use goxlr_ipc::{DaemonRequest, DaemonResponse};
 use interprocess::local_socket::tokio::LocalSocketStream;
 use interprocess::local_socket::NameTypeSupport;
 use serde::{Deserialize, Serialize};
@@ -16,6 +14,7 @@ use std::io::ErrorKind;
 
 use std::path::{Path, PathBuf};
 
+use crate::ipc::Socket;
 use tauri::{AppHandle, Manager};
 use tungstenite::{connect, Message};
 use url::Url;
@@ -110,18 +109,50 @@ async fn get_goxlr_host() -> Result<String, String> {
             "Unable to connect to the GoXLR Namespace / Unix Socket",
         ));
     }
+    println!("Saying Hello?");
 
-    let socket: Socket<DaemonResponse, DaemonRequest> = Socket::new(connection.unwrap());
-    let mut client = IPCClient::new(socket);
-    let _ = client.poll_status().await;
-    let status = client.http_status();
-    let host = if status.bind_address != "localhost" && status.bind_address != "0.0.0.0" {
-        status.bind_address.clone()
+    let mut socket: Socket<Value, Value> = Socket::new(connection.unwrap());
+    println!("Sending Message..");
+
+    // We need to dig quite far into the result to get what we need, and pretty much every
+    // node is an Option, so yay.. I should probably unwrap_or_else..
+    return if socket.send(json!("GetStatus")).await.is_ok() {
+        if let Ok(Some(result)) = socket.try_read().await {
+            if let Some(status) = result.get("Status") {
+                if let Some(config) = status.get("config") {
+                    if let Some(http_settings) = config.get("http_settings") {
+                        if let Some(address) = http_settings.get("bind_address") {
+                            if let Some(address) = address.as_str() {
+                                if let Some(port) = http_settings.get("port") {
+                                    if let Some(port) = port.as_u64() {
+                                        Ok(format!("{}:{}", address, port))
+                                    } else {
+                                        Err("Unable to Parse Port".into())
+                                    }
+                                } else {
+                                    Err("Port Missing from http_status".into())
+                                }
+                            } else {
+                                Err("Unable to parse bind_address as String".into())
+                            }
+                        } else {
+                            Err("bind_address Missing from http_status".into())
+                        }
+                    } else {
+                        Err("http_settings missing from Config response".into())
+                    }
+                } else {
+                    Err("config missing from Status response".into())
+                }
+            } else {
+                Err("Status missing from GetStatus response!".into())
+            }
+        } else {
+            Err("Unable to retrieve GetStatus Response".into())
+        }
     } else {
-        "localhost".to_string()
+        Err(String::from("Unable to obtain GoXLR Utility Address"))
     };
-
-    Ok(format!("{}:{}", host, status.port))
 }
 
 async fn goxlr_utility_monitor(handle: AppHandle) {
