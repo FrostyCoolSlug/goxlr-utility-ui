@@ -79,9 +79,9 @@ async fn main() {
 
             Ok(())
         })
-        .on_window_event(|event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event.event() {
-                event.window().hide().unwrap();
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                window.hide().unwrap();
                 api.prevent_close();
             }
         })
