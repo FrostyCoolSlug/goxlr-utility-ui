@@ -22,7 +22,8 @@ This app maintains a backend websocket connection to the utility, when that sock
 that the utility has exited, at which point this app will terminate cleanly.
 
 ## Support
-This is relatively unsupported, and is primarily a proof of concept, please treat it as such :)
+This is primarily supported over at the [GoXLR Utility](https://github.com/GoXLR-on-Linux/goxlr-utility) repo, 
+where it's included in all Windows builds. Feel free to open an issue here if you have any problems!
 
 ## Building
 Simple instructions:
