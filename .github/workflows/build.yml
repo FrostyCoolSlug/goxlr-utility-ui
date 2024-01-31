@@ -7,10 +7,10 @@ jobs:
     name: Checking for Linux
     runs-on: ubuntu-22.04
     steps:
-#      - name: "Install Dependencies"
-#        run: |
-#          sudo apt-get update
-#          sudo apt-get install
+      - name: "Install Dependencies"
+        run: |
+          sudo apt-get update
+          sudo apt-get install pkg-config
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
         with:

@@ -63,10 +63,10 @@ jobs:
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
 
-#      - name: "Install Required Libraries"
-#        run: |
-#          sudo apt-get update
-#          sudo apt-get install libpulse0 libdbus-1-dev pkg-config libspeechd-dev
+      - name: "Install Required Libraries"
+        run: |
+          sudo apt-get update
+          sudo apt-get install pkg-config
 
       - name: "Loading Cache"
         uses: actions/cache@v3
