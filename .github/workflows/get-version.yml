@@ -24,4 +24,4 @@ jobs:
 
       - name: "Store Version"
         id: store_version
-        run: echo "version=$(cargo pkgid --manifest-path=src-tauri/Cargo.toml | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(cargo pkgid --manifest-path src-tauri/Cargo.toml | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
