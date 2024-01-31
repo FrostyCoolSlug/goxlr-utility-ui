@@ -31,7 +31,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-release-
 
       - name: "Build UI"
-        run: "cargo build --manifest-path=src-tauri/Cargo.toml --release --all-features"
+        run: "cargo build --manifest-path src-tauri/Cargo.toml --release --all-features"
 
       # Prepare NSIS
       - name: "Preparing NSIS"
