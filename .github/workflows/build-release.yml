@@ -10,18 +10,9 @@ jobs:
     runs-on: windows-latest
     needs: [get_version]
     steps:
-      # Firstly Checkout our Repository..
-      - name: "Check out GoXLR Utility"
-        uses: actions/checkout@v3
-        with:
-          path: goxlr-utility-ui
-
-      # Now Checkout the App Wrappers repository..
+      # Checkout the Utility UI..
       - name: "Check out GoXLR Utility UI"
         uses: actions/checkout@v3
-        with:
-          repository: frostycoolslug/goxlr-utility-ui
-          path: goxlr-utility-ui
 
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
