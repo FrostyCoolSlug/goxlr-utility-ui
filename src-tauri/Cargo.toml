@@ -15,8 +15,8 @@ tauri-build = { version = "2.0.0-alpha", features = [] }
 [dependencies]
 # Useful GoXLR Stuff..
 tokio = { version = "1.35.0", features = ["full"] }
-tokio-serde = { version = "0.8.0", features=["bincode", "json"] }
-tokio-util = { version = "0.7.10", features=["codec", "compat"]}
+tokio-serde = { version = "0.8.0", features= ["bincode", "json"] }
+tokio-util = { version = "0.7.10", features= ["codec", "compat"] }
 interprocess = { version = "1.2.1", features = ["tokio_support"] }
 serde = { version = "1.0.193", features = ["derive"] }
 futures = "0.3.29"
@@ -32,7 +32,7 @@ tungstenite = "0.21.0"
 serde_json = "1.0.108"
 directories = "5.0.1"
 
-tauri = { version = "2.0.0-alpha"}
+tauri = { version = "2.0.0-alpha", features = [] }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-shell = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
@@ -48,7 +48,7 @@ custom-protocol = ["tauri/custom-protocol"]
 [package.metadata.deb]
 name = "goxlr-utility-ui"
 assets = [
-    ["../target/release/goxlr-utility-ui", "usr/bin/", "755"],
+    ["target/release/goxlr-utility-ui", "usr/bin/", "755"],
 ]
 section = "sound"
 priority = "optional"
@@ -62,7 +62,7 @@ revision = "1"
 [package.metadata.generate-rpm]
 name = "goxlr-utility-ui"
 assets = [
-    { source = "../target/release/goxlr-utility-ui", dest = "/usr/bin/goxlr-utility-ui", mode = "0755" },
+    { source = "target/release/goxlr-utility-ui", dest = "/usr/bin/goxlr-utility-ui", mode = "0755" },
 ]
 
 # Because we build under Ubuntu in CI, generate-rpm is unable to calculate the dependencies required (no access
@@ -70,8 +70,8 @@ assets = [
 auto-req = "no"
 
 [package.metadata.generate-rpm.requires]
-javascriptcoregtk4.0 = ">= 2.38.2"
-webkit2gtk4.0 = ">= 2.38.2"
+"javascriptcoregtk4.0" = ">= 2.38.2"
+"webkit2gtk4.0" = ">= 2.38.2"
 libxdo = ">= 3.20160805.1"
 libappindicator-gtk3 = ">= 10.10.0"
 xdotool = ">= 3.20160805.1"
