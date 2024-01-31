@@ -24,10 +24,6 @@ static READY_EVENT_NAME: &str = "READY";
 static SHOW_EVENT_NAME: &str = "si-event";
 static STOP_EVENT_NAME: &str = "seppuku";
 
-// Why do I need to define there? :D
-static SOCKET_PATH: &str = "/tmp/goxlr.socket";
-static NAMED_PIPE: &str = "@goxlr.socket";
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Host(String);
 
@@ -89,6 +85,9 @@ async fn main() {
 }
 
 async fn get_goxlr_host() -> Result<String, String> {
+    static SOCKET_PATH: &str = "/tmp/goxlr.socket";
+    static NAMED_PIPE: &str = "@goxlr.socket";
+
     let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
         NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
@@ -109,10 +108,8 @@ async fn get_goxlr_host() -> Result<String, String> {
             "Unable to connect to the GoXLR Namespace / Unix Socket",
         ));
     }
-    println!("Saying Hello?");
 
     let mut socket: Socket<Value, Value> = Socket::new(connection.unwrap());
-    println!("Sending Message..");
 
     // We need to dig quite far into the result to get what we need, and pretty much every
     // node is an Option, so yay.. I should probably unwrap_or_else..
@@ -182,9 +179,9 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
                 "Unable to connect to the GoXLR Utility".to_string(),
                 Icon::ERROR,
             );
-            let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
-            return;
         }
+        let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
+        return;
     }
 
     // Got a good connection, grab the socket..
