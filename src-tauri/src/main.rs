@@ -105,7 +105,7 @@ async fn get_goxlr_host() -> Result<String, String> {
                 "The GoXLR Utility must be running before launching this app.\r\n{}",
                 connection.err().unwrap()
             );
-            let _ = show_dialog("Unable to Launch UI".to_string(), message, Icon::ERROR);
+            let _ = show_dialog("Unable to Launch UI".to_string(), message, Icon::Error);
         }
         return Err(String::from(
             "Unable to connect to the GoXLR Namespace / Unix Socket",
@@ -180,7 +180,7 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
             let _ = show_dialog(
                 "Unable to Launch UI".to_string(),
                 "Unable to connect to the GoXLR Utility".to_string(),
-                Icon::ERROR,
+                Icon::Error,
             );
         }
         let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
@@ -286,7 +286,7 @@ fn show_dialog(title: String, message: String, icon: Icon) -> Result<(), String>
     use winapi::um::winuser::{MessageBoxW, MB_ICONERROR};
 
     let icon = match icon {
-        Icon::ERROR => MB_ICONERROR,
+        Icon::Error => MB_ICONERROR,
     };
 
     let lp_title: Vec<u16> = title.encode_utf16().chain(once(0)).collect();
