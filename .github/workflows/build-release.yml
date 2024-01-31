@@ -66,7 +66,7 @@ jobs:
       - name: "Install Required Libraries"
         run: |
           sudo apt-get update
-          sudo apt-get install pkg-config libgtk-3-dev libsoup-3.0-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install pkg-config libgtk-3-dev libsoup-3.0-dev javascriptcoregtk-4.1.pc
 
       - name: "Loading Cache"
         uses: actions/cache@v3
