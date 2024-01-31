@@ -20,16 +20,18 @@ if ! command -V cargo-generate-rpm > /dev/null 2>&1; then
     exit 1
 fi
 
+cd src-tauri
+
 # Neither 'cargo deb' or 'cargo generate-rpm' seem to provide a way to specify an asset that is created at build time.
 # To work around this, we force a release build, copy out the shell completions produced from that build, put it into
 # a predictable location and then build the packages, which knows where to look.
-cargo build --manifest-path=src-tauri/Cargo.toml --release --all-features
+cargo build --release --all-features
 
 strip src-tauri/target/release/goxlr-utility-ui
 
 # Now, first build the .deb file (We don't need to recompile the code here)..
-cargo deb --manifest-path=src-tauri/Cargo.toml --no-build
+cargo deb --no-build
 
 # Then the RPM
-cargo generate-rpm --manifest-path=src-tauri/Cargo.toml
-cargo generate-rpm --manifest-path=src-tauri/Cargo.toml --variant suse
+cargo generate-rpm
+cargo generate-rpm --variant suse
