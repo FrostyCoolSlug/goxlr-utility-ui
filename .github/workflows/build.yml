@@ -7,10 +7,13 @@ jobs:
     name: Checking for Linux
     runs-on: ubuntu-22.04
     steps:
-      - name: "Install Dependencies"
+      - name: "Update Base"
         run: |
           sudo apt-get update
-          sudo apt-get install
+
+      - name: "Install Dependencies"
+        run: |
+          sudo apt-get install \
             pkg-config \
             libgtk-3-dev \
             libsoup-3.0-dev \
@@ -20,6 +23,7 @@ jobs:
             libgtk-3-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev
+
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
         with:
