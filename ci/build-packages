@@ -32,4 +32,4 @@ cargo --manifest-path=src-tauri/Cargo.toml deb --no-build
 
 # Then the RPM
 cargo --manifest-path=src-tauri/Cargo.toml generate-rpm
-cargo --manifest-path=src-tauri/Cargo.toml  generate-rpm --variant suse
+cargo --manifest-path=src-tauri/Cargo.toml generate-rpm --variant suse
