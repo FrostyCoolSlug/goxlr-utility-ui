@@ -70,17 +70,11 @@ assets = [
 auto-req = "no"
 
 [package.metadata.generate-rpm.requires]
-"javascriptcoregtk4.0" = ">= 2.38.2"
-"webkit2gtk4.0" = ">= 2.38.2"
-libxdo = ">= 3.20160805.1"
-libappindicator-gtk3 = ">= 10.10.0"
-xdotool = ">= 3.20160805.1"
+
 
 [package.metadata.generate-rpm.variants.suse]
 release = "suse"
 
 # SuSE has the same general dependencies as anything RHEL
 [package.metadata.generate-rpm.variants.suse.requires]
-webkit2gtk3 = ">= 2.26.4"
-xdotool = ">= 3.20160805.1"
-libappindicator = ">= 12.10.0"
+
