@@ -53,7 +53,7 @@ assets = [
 ]
 section = "sound"
 priority = "optional"
-depends = "$auto"
+depends = "$auto, goxlr-utility (>= 0.12.0)"
 extended-description = """\
 A UI Wrapper for the GoXLR Utility
 """
@@ -74,3 +74,4 @@ auto-req = "no"
 [package.metadata.generate-rpm.requires]
 "libgtk-3.so.0" = "*"
 "libwebkit2gtk-4.1.so.0" = "*"
+"goxlr-utility" = ">= 0.12.0"
