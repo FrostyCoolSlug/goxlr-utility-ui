@@ -1,9 +1,18 @@
 # GoXLR Utility UI Wrapper
 This is a simple app which uses tauri to wrap an app around the GoXLR Utilities configuration page.
 
+The [Releases Page](https://github.com/FrostyCoolSlug/goxlr-utility-ui/releases) contains packages for various
+platforms, tested as best as possible, the following are available:
+
+- `.deb` files for Debian 12+ and Ubuntu 22.04+ (and their derivatives)
+- `.rpm` files for **FEDORA** only, 37+
+- `.AppImage` files for all other Linux platforms
+- `.exe` for Windows, although these will be bundled with the Windows Installer
+- AUR contains the package as `goxlr-utility-ui`
+
+## Installation
 To install, shutdown the GoXLR Utility and run the following commands (replacing `goxlr-utility-ui` with the
 correct binary for your platform):
-
 
 `goxlr-utility-ui --install`
 
