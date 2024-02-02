@@ -7,14 +7,14 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "goxlr-util-ui",
+    "productName": "goxlr-utility-ui",
     "version": "0.0.2"
   },
   "tauri": {
     "bundle": {
       "active": true,
-      "targets": "all",
-      "identifier": "com.frostycoolslug.goxlr-util-ui",
+      "targets": "appimage",
+      "identifier": "com.frostycoolslug.goxlr-utility-ui",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
