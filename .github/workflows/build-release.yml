@@ -80,7 +80,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-release-
 
       - name: Install cargo-deb and cargo-generate-rpm
-        run: cargo install --force cargo-deb cargo-generate-rpm
+        run: cargo install --force cargo-deb cargo-generate-rpm cargo-tauri-cli
 
       - name: "Build Packages"
         run: ./ci/build-packages
@@ -97,3 +97,9 @@ jobs:
         with:
           name: rpm-artifact
           path: ./src-tauri/target/generate-rpm/*.rpm
+
+      - name: "Upload AppImage Artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          name: appimage-artifact
+          path: ./src-tauri/target/release/bundle/appimage/*.AppImage

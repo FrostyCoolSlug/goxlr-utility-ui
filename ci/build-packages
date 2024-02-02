@@ -22,10 +22,8 @@ fi
 
 cd src-tauri
 
-# Neither 'cargo deb' or 'cargo generate-rpm' seem to provide a way to specify an asset that is created at build time.
-# To work around this, we force a release build, copy out the shell completions produced from that build, put it into
-# a predictable location and then build the packages, which knows where to look.
-cargo build --release --all-features
+# Use Tauri to Build the app, as well as the AppImage bundle
+cargo tauri build
 
 strip target/release/goxlr-utility-ui
 
@@ -34,4 +32,3 @@ cargo deb --no-build
 
 # Then the RPM
 cargo generate-rpm
-cargo generate-rpm --variant suse
