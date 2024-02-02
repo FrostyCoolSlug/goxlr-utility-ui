@@ -13,6 +13,7 @@ use std::fs::{create_dir_all, File};
 use std::io::ErrorKind;
 
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use crate::ipc::Socket;
 use tauri::{AppHandle, Manager};
@@ -24,22 +25,27 @@ static READY_EVENT_NAME: &str = "READY";
 static SHOW_EVENT_NAME: &str = "si-event";
 static STOP_EVENT_NAME: &str = "seppuku";
 
+static SOCKET_PATH: &str = "/tmp/goxlr.socket";
+static NAMED_PIPE: &str = "@goxlr.socket";
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Host(String);
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
         if args[1] == "--install" {
             manage(true);
-            return;
+            return Ok(());
         }
         if args[1] == "--remove" {
             manage(false);
-            return;
+            return Ok(());
         }
     }
+
+    goxlr_preflight().await?;
 
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
@@ -85,12 +91,11 @@ async fn main() {
         })
         .run(tauri::generate_context!())
         .expect("error running tauri app");
+
+    Ok(())
 }
 
-async fn get_goxlr_host() -> Result<String, String> {
-    static SOCKET_PATH: &str = "/tmp/goxlr.socket";
-    static NAMED_PIPE: &str = "@goxlr.socket";
-
+async fn goxlr_preflight() -> Result<(), String> {
     let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
         NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
@@ -99,17 +104,25 @@ async fn get_goxlr_host() -> Result<String, String> {
 
     if connection.is_err() {
         // We only support windows for these currently..
-        #[cfg(target_os = "windows")]
-        {
-            let message = format!(
-                "The GoXLR Utility must be running before launching this app.\r\n{}",
-                connection.err().unwrap()
-            );
-            let _ = show_dialog("Unable to Launch UI".to_string(), message, Icon::Error);
-        }
+        let message = String::from("The GoXLR Utility must be running before launching this app.");
+        show_error("GoXLR Utility UI".to_string(), message);
+
         return Err(String::from(
             "Unable to connect to the GoXLR Namespace / Unix Socket",
         ));
+    }
+    Ok(())
+}
+
+async fn get_goxlr_host() -> Result<String, String> {
+    let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
+        NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
+        NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
+    })
+    .await;
+
+    if connection.is_err() {
+        return Err(String::from("Unable to Connect to the Utility"));
     }
 
     let mut socket: Socket<Value, Value> = Socket::new(connection.unwrap());
@@ -180,7 +193,6 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
             let _ = show_dialog(
                 "Unable to Launch UI".to_string(),
                 "Unable to connect to the GoXLR Utility".to_string(),
-                Icon::Error,
             );
         }
         let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
@@ -189,10 +201,6 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
 
     // Got a good connection, grab the socket..
     let (mut socket, _) = result.unwrap();
-
-    println!();
-    println!("{}", http_address);
-    println!();
     // Trigger the event that lets the window know we're ready..
     let _ = handle.emit(READY_EVENT_NAME, &http_address);
 
@@ -279,28 +287,45 @@ fn get_settings_file() -> PathBuf {
     proj_dirs.config_dir().join("settings.json")
 }
 
+#[cfg(target_os = "linux")]
+fn show_error(title: String, message: String) {
+    // We have two choices here, kdialog, or zenity. We'll try both.
+    if let Err(e) = Command::new("kdialog")
+        .arg("--title")
+        .arg(title.clone())
+        .arg("--error")
+        .arg(message.clone())
+        .output()
+    {
+        println!("Error Running kdialog: {}, falling back to zenity..", e);
+        let _ = Command::new("zenity")
+            .arg("--title")
+            .arg(title)
+            .arg("--error")
+            .arg("--text")
+            .arg(message)
+            .output();
+    }
+}
+
 #[cfg(target_os = "windows")]
-fn show_dialog(title: String, message: String, icon: Icon) -> Result<(), String> {
+fn show_error(title: String, message: String) -> Result<(), String> {
     use std::iter::once;
     use std::ptr::null_mut;
     use winapi::um::winuser::{MessageBoxW, MB_ICONERROR};
-
-    let icon = match icon {
-        Icon::Error => MB_ICONERROR,
-    };
 
     let lp_title: Vec<u16> = title.encode_utf16().chain(once(0)).collect();
     let lp_message: Vec<u16> = message.encode_utf16().chain(once(0)).collect();
 
     unsafe {
-        match MessageBoxW(null_mut(), lp_message.as_ptr(), lp_title.as_ptr(), icon) {
+        match MessageBoxW(
+            null_mut(),
+            lp_message.as_ptr(),
+            lp_title.as_ptr(),
+            MB_ICONERROR,
+        ) {
             0 => Err("Unable to Create Dialog".to_string()),
             _ => Ok(()),
         }
     }
-}
-
-#[cfg(target_os = "windows")]
-enum Icon {
-    Error,
 }

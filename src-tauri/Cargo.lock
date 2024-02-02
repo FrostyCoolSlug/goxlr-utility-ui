@@ -1422,7 +1422,7 @@ dependencies = [
 
 [[package]]
 name = "goxlr-utility-ui"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "directories",
  "futures",
