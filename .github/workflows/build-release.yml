@@ -40,7 +40,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: windows-artifact
-          path: ./src-tauri/target/release/goxlr-utility-ui.exe
+          path: ./src-tauri/target/release/*.exe
 
   build:
     name: "Create Linux Builds"
