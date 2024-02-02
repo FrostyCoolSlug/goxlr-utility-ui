@@ -34,7 +34,7 @@ jobs:
         run: "cargo build --manifest-path src-tauri/Cargo.toml --release --all-features"
 
       - name: "Rename Artifact"
-        run: "rename src-tauri/target/release/goxlr-utility-ui.exe src-tauri/target/release/goxlr-utility-ui-${{ needs.get_version.outputs.version }}.exe"
+        run: Rename-Item -Path "src-tauri/target/release/goxlr-utility-ui.exe" -NewName "goxlr-utility-ui-${{ needs.get_version.outputs.version }}.exe"
 
       - name: "Upload Binary"
         uses: actions/upload-artifact@v3
