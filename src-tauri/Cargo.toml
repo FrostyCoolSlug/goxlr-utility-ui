@@ -49,6 +49,7 @@ custom-protocol = ["tauri/custom-protocol"]
 name = "goxlr-utility-ui"
 assets = [
     ["target/release/goxlr-utility-ui", "usr/bin/", "755"],
+    ["../../ci/resources/goxlr-utility-ui.desktop", "usr/share/applications", "644"],
 ]
 section = "sound"
 priority = "optional"
@@ -63,6 +64,7 @@ revision = "1"
 name = "goxlr-utility-ui"
 assets = [
     { source = "target/release/goxlr-utility-ui", dest = "/usr/bin/goxlr-utility-ui", mode = "0755" },
+    { source = "../../ci/resources/goxlr-utility-ui.desktop", dest = "/usr/share/applications/goxlr-utility-ui.desktop", mode = "0644" },
 ]
 
 # Because we build under Ubuntu in CI, generate-rpm is unable to calculate the dependencies required (no access

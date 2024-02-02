@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=GoXLR Utility UI
+Comment=A UI Wrapper for the GoXLR Utility
+Path=/usr/bin
+Exec=/usr/bin/goxlr-utility-ui
+Terminal=false
+Icon=goxlr-utility
+Categories=Utility
+
+# We don't need to display this on the programs menu, it should be hooked
+# into the Utility itself. The .desktop file is primarily here for Wayland
+# clients, so they display the correct icon in the task manager.
+NoDisplay=true

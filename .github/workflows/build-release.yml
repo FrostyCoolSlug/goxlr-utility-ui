@@ -79,8 +79,8 @@ jobs:
           key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-release-
 
-      - name: Install cargo-deb and cargo-generate-rpm
-        run: cargo install --force cargo-deb cargo-generate-rpm cargo-tauri-cli
+      - name: Install cargo-deb, cargo-generate-rpm and tauri-cli
+        run: cargo install --force cargo-deb cargo-generate-rpm tauri-cli
 
       - name: "Build Packages"
         run: ./ci/build-packages
