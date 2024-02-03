@@ -404,16 +404,16 @@ fn show_error(title: String, message: String) -> Result<(), String> {
 }
 
 #[cfg(target_os = "windows")]
-fn show_option(title: String, message: String) -> Result<(), ()> {
+fn show_option(_title: String, _message: String) -> Result<(), ()> {
     Ok(())
 }
 
 #[cfg(target_os = "macos")]
-fn show_error(title: String, message: String) -> Result<(), String> {
+fn show_error(_title: String, _message: String) -> Result<(), String> {
     Ok(())
 }
 
 #[cfg(target_os = "macos")]
-fn show_option(title: String, message: String) -> Result<(), ()> {
+fn show_option(_title: String, _message: String) -> Result<(), ()> {
     Ok(())
 }
