@@ -223,7 +223,7 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
         // We only support windows for these currently..
         #[cfg(target_os = "windows")]
         {
-            let _ = show_dialog(
+            show_error(
                 "Unable to Launch UI".to_string(),
                 "Unable to connect to the GoXLR Utility".to_string(),
             );
@@ -382,7 +382,7 @@ fn show_option(title: String, message: String) -> Result<(), ()> {
 }
 
 #[cfg(target_os = "windows")]
-fn show_error(title: String, message: String) -> Result<(), String> {
+fn show_error(title: String, message: String) {
     use std::iter::once;
     use std::ptr::null_mut;
     use winapi::um::winuser::{MessageBoxW, MB_ICONERROR};
@@ -391,15 +391,12 @@ fn show_error(title: String, message: String) -> Result<(), String> {
     let lp_message: Vec<u16> = message.encode_utf16().chain(once(0)).collect();
 
     unsafe {
-        match MessageBoxW(
+        MessageBoxW(
             null_mut(),
             lp_message.as_ptr(),
             lp_title.as_ptr(),
             MB_ICONERROR,
-        ) {
-            0 => Err("Unable to Create Dialog".to_string()),
-            _ => Ok(()),
-        }
+        );
     }
 }
 
@@ -409,7 +406,7 @@ fn show_option(_title: String, _message: String) -> Result<(), ()> {
 }
 
 #[cfg(target_os = "macos")]
-fn show_error(_title: String, _message: String) -> Result<(), String> {
+fn show_error(_title: String, _message: String) {
     Ok(())
 }
 
