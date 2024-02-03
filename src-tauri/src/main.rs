@@ -13,7 +13,6 @@ use std::fs::{create_dir_all, File};
 use std::io::ErrorKind;
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use crate::ipc::Socket;
 use tauri::{AppHandle, Manager};
@@ -327,6 +326,7 @@ fn get_settings_file() -> PathBuf {
 
 #[cfg(target_os = "linux")]
 fn show_error(title: String, message: String) {
+    use std::process::Command;
     // We have two choices here, kdialog, or zenity. We'll try both.
     if let Err(e) = Command::new("kdialog")
         .arg("--title")
@@ -348,6 +348,7 @@ fn show_error(title: String, message: String) {
 
 #[cfg(target_os = "linux")]
 fn show_option(title: String, message: String) -> Result<(), ()> {
+    use std::process::Command;
     // We need to grab the return status..
     if let Ok(status) = Command::new("kdialog")
         .arg("--title")
@@ -381,11 +382,6 @@ fn show_option(title: String, message: String) -> Result<(), ()> {
 }
 
 #[cfg(target_os = "windows")]
-fn show_option(title: String, message: String) -> Result<(), ()> {
-    Ok(())
-}
-
-#[cfg(target_os = "windows")]
 fn show_error(title: String, message: String) -> Result<(), String> {
     use std::iter::once;
     use std::ptr::null_mut;
@@ -405,4 +401,19 @@ fn show_error(title: String, message: String) -> Result<(), String> {
             _ => Ok(()),
         }
     }
+}
+
+#[cfg(target_os = "windows")]
+fn show_option(title: String, message: String) -> Result<(), ()> {
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn show_error(title: String, message: String) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn show_option(title: String, message: String) -> Result<(), ()> {
+    Ok(())
 }
