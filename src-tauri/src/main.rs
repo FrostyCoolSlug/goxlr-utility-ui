@@ -406,9 +406,7 @@ fn show_option(_title: String, _message: String) -> Result<(), ()> {
 }
 
 #[cfg(target_os = "macos")]
-fn show_error(_title: String, _message: String) {
-    Ok(())
-}
+fn show_error(_title: String, _message: String) {}
 
 #[cfg(target_os = "macos")]
 fn show_option(_title: String, _message: String) -> Result<(), ()> {
