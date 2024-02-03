@@ -111,6 +111,40 @@ async fn goxlr_preflight() -> Result<(), String> {
             "Unable to connect to the GoXLR Namespace / Unix Socket",
         ));
     }
+    let mut socket: Socket<Value, Value> = Socket::new(connection.unwrap());
+    if socket.send(json!("GetStatus")).await.is_ok() {
+        if let Ok(Some(result)) = socket.try_read().await {
+            if let Some(status) = result.get("Status") {
+                if let Some(config) = status.get("config") {
+                    if let Some(activation) = config.get("activation") {
+                        if let Some(path) = activation.get("active_path") {
+                            let exe = get_current_path();
+                            if path.as_str().is_none()
+                                || PathBuf::from(path.as_str().unwrap()) != exe
+                            {
+                                let title = String::from("GoXLR Utility UI");
+                                let message = String::from("Use this app to control your GoXLR?");
+                                if show_option(title, message).is_ok() {
+                                    // Attempt to Register ourselves as the UI App..
+                                    let command = format!(
+                                        "{{ \"Daemon\": {{ \"SetActivatorPath\": \"{}\"  }} }}",
+                                        exe.to_string_lossy()
+                                    );
+                                    let json = serde_json::from_str::<Value>(&command).unwrap();
+                                    let _ = socket.send(json).await;
+                                } else {
+                                    return Err(String::from("Unable to obtain user consent"));
+                                }
+                            }
+                        }
+                    } else {
+                        println!("[WARN] Not running 1.0.6+, Cannot ask for update.");
+                    }
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -232,6 +266,15 @@ fn manage(install: bool) {
     write_settings(&path, json, install);
 }
 
+fn get_current_path() -> PathBuf {
+    if let Ok(app_image) = env::var("APPIMAGE") {
+        println!("Using AppImage at {}", &app_image);
+        PathBuf::from(app_image)
+    } else {
+        env::current_exe().unwrap()
+    }
+}
+
 fn create_settings_path(path: &Path) {
     println!("Creating path if needed..");
     if let Some(parent) = path.parent() {
@@ -257,12 +300,7 @@ fn load_settings(path: &PathBuf) -> Value {
 }
 
 fn write_settings(path: &PathBuf, mut value: Value, install: bool) {
-    let exe = if let Ok(app_image) = env::var("APPIMAGE") {
-        println!("Using AppImage at {}", &app_image);
-        PathBuf::from(app_image)
-    } else {
-        env::current_exe().unwrap()
-    };
+    let exe = get_current_path();
 
     value["activate"] = if install {
         Value::String(format!("\"{}\"", exe.to_string_lossy()))
@@ -306,6 +344,45 @@ fn show_error(title: String, message: String) {
             .arg(message)
             .output();
     }
+}
+
+#[cfg(target_os = "linux")]
+fn show_option(title: String, message: String) -> Result<(), ()> {
+    // We need to grab the return status..
+    if let Ok(status) = Command::new("kdialog")
+        .arg("--title")
+        .arg(title.clone())
+        .arg("--yesno")
+        .arg(message.clone())
+        .status()
+    {
+        if status.success() {
+            Ok(())
+        } else {
+            Err(())
+        }
+    } else if let Ok(status) = Command::new("zenity")
+        .arg("--title")
+        .arg(title)
+        .arg("--question")
+        .arg("--text")
+        .arg(message)
+        .status()
+    {
+        if status.success() {
+            Ok(())
+        } else {
+            Err(())
+        }
+    } else {
+        // We weren't able to trigger kdialog, or zenity, this is a failure.
+        Err(())
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn show_option(title: String, message: String) -> Result<(), ()> {
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
