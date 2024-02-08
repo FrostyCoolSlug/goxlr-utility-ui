@@ -35,11 +35,11 @@ async fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
         if args[1] == "--install" {
-            manage(true);
+            manage(true).await;
             return Ok(());
         }
         if args[1] == "--remove" {
-            manage(false);
+            manage(false).await;
             return Ok(());
         }
     }
@@ -137,7 +137,8 @@ async fn goxlr_preflight() -> Result<(), String> {
                             }
                         }
                     } else {
-                        println!("[WARN] Not running 1.0.6+, Cannot ask for update.");
+                        show_error(String::from("GoXLR Utility UI"), String::from("Please shut down the Utility, then run: \n\ngoxlr-utility-ui --install"));
+                        return Err(String::from("Unable to Install the UI"));
                     }
                 }
             }
@@ -201,6 +202,21 @@ async fn get_goxlr_host() -> Result<String, String> {
     };
 }
 
+async fn supports_activation(socket: &mut Socket<Value, Value>) -> bool {
+    if socket.send(json!("GetStatus")).await.is_ok() {
+        if let Ok(Some(result)) = socket.try_read().await {
+            if let Some(status) = result.get("Status") {
+                if let Some(config) = status.get("config") {
+                    if let Some(_) = config.get("activation") {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
 async fn goxlr_utility_monitor(handle: AppHandle) {
     print!("Spawning the Monitor..");
 
@@ -221,13 +237,10 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
     let result = connect(url);
     if result.is_err() {
         // We only support windows for these currently..
-        #[cfg(target_os = "windows")]
-        {
-            show_error(
-                "Unable to Launch UI".to_string(),
-                "Unable to connect to the GoXLR Utility".to_string(),
-            );
-        }
+        show_error(
+            "Unable to Launch UI".to_string(),
+            "Unable to connect to the GoXLR Utility".to_string(),
+        );
         let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
         return;
     }
@@ -249,20 +262,52 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
 }
 
 // Installs this app into the util..
-fn manage(install: bool) {
-    println!("Locating Settings File..");
-    let path = get_settings_file();
-    let json = if !&path.exists() {
-        if !install {
-            // If we're removing, and the path is missing, do nothing.
-            return;
-        }
-        create_settings_path(&path);
-        json!({ "activate": Value::Null })
+async fn manage(install: bool) {
+    println!("Checking if Utility is Running..");
+    let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
+        NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
+        NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
+    })
+    .await;
+
+    if connection.is_err() {
+        println!("Utility Not Running, changing config directly..");
+        println!("Locating Settings File..");
+        let path = get_settings_file();
+        let json = if !&path.exists() {
+            if !install {
+                // If we're removing, and the path is missing, do nothing.
+                return;
+            }
+            create_settings_path(&path);
+            json!({ "activate": Value::Null })
+        } else {
+            load_settings(&path)
+        };
+        write_settings(&path, json, install);
     } else {
-        load_settings(&path)
-    };
-    write_settings(&path, json, install);
+        println!("Utility Running, attempting via IPC");
+        let exe = if install {
+            format!("\"{}\"", get_current_path().to_string_lossy())
+        } else {
+            String::from("null")
+        };
+        let method = if install { "Install" } else { "Remove" };
+
+        let mut socket: Socket<Value, Value> = Socket::new(connection.unwrap());
+        if supports_activation(&mut socket).await {
+            // Attempt to Register ourselves as the UI App..
+            let command = format!("{{ \"Daemon\": {{ \"SetActivatorPath\": {} }} }}", exe);
+            println!("Executing: {}", command);
+            let json = serde_json::from_str::<Value>(&command).unwrap();
+            let _ = socket.send(json).await;
+        } else {
+            show_error(
+                String::from("GoXLR Utility UI"),
+                format!("Unable to {}, Please stop the GoXLR Utility first.", method),
+            );
+        }
+    }
 }
 
 fn get_current_path() -> PathBuf {
@@ -302,7 +347,7 @@ fn write_settings(path: &PathBuf, mut value: Value, install: bool) {
     let exe = get_current_path();
 
     value["activate"] = if install {
-        Value::String(format!("\"{}\"", exe.to_string_lossy()))
+        Value::String(format!("{}", exe.to_string_lossy()))
     } else {
         Value::Null
     };
