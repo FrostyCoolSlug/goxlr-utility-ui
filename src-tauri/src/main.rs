@@ -136,9 +136,6 @@ async fn goxlr_preflight() -> Result<(), String> {
                                 }
                             }
                         }
-                    } else {
-                        show_error(String::from("GoXLR Utility UI"), String::from("Please shut down the Utility, then run:\n\ngoxlr-utility-ui --install"));
-                        return Err(String::from("Unable to Install the UI"));
                     }
                 }
             }
