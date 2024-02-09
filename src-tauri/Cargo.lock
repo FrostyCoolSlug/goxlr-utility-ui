@@ -1439,7 +1439,7 @@ dependencies = [
  "tokio-util",
  "tungstenite",
  "url",
- "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
