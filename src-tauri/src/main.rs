@@ -131,9 +131,9 @@ async fn goxlr_preflight() -> Result<(), String> {
                                     }
                                     #[cfg(unix)]
                                     {
-                                        let command = shell_words::split(&path);
-                                        if let Some(params) = command {
-                                            found.replace(params[0]);
+                                        let command = shell_words::split(path);
+                                        if let Ok(params) = command {
+                                            found.replace(params[0].clone());
                                         }
                                     }
                                 }
