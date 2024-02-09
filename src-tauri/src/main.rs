@@ -118,17 +118,34 @@ async fn goxlr_preflight() -> Result<(), String> {
                     if let Some(activation) = config.get("activation") {
                         if let Some(path) = activation.get("active_path") {
                             let exe = get_current_path();
-                            if path.as_str().is_none()
-                                || PathBuf::from(path.as_str().unwrap()) != exe
-                            {
+
+                            let path = {
+                                let mut found = None;
+                                if let Some(path) = path.as_str() {
+                                    #[cfg(not(unix))]
+                                    {
+                                        let mut command = windows_args::Args::parse_cmd(path);
+                                        if let Some(command) = command.next() {
+                                            found.replace(command);
+                                        }
+                                    }
+                                    #[cfg(unix)]
+                                    {
+                                        let command = shell_words::split(&path);
+                                        if let Some(params) = command {
+                                            found.replace(params[0]);
+                                        }
+                                    }
+                                }
+                                found
+                            };
+                            println!("{:#?}", path);
+
+                            if path.is_none() || PathBuf::from(path.unwrap()) != exe {
                                 let title = String::from("GoXLR Utility UI");
                                 let message = String::from("Use this app to control your GoXLR?");
                                 if show_option(title, message).is_ok() {
-                                    // Attempt to Register ourselves as the UI App..
-                                    let command = format!(
-                                        "{{ \"Daemon\": {{ \"SetActivatorPath\": {}  }} }}",
-                                        Value::String(exe.to_string_lossy().to_string())
-                                    );
+                                    let command = get_activator_command(Some(exe));
                                     let json = serde_json::from_str::<Value>(&command).unwrap();
                                     let _ = socket.send(json).await;
                                 } else {
@@ -290,18 +307,21 @@ async fn manage(install: bool) {
         write_settings(&path, json, install);
     } else {
         println!("Utility Running, attempting via IPC");
-        let exe = if install {
-            format!("\"{}\"", get_current_path().to_string_lossy())
-        } else {
-            String::from("null")
-        };
         let method = if install { "Install" } else { "Remove" };
 
         let mut socket: Socket<Value, Value> = Socket::new(connection.unwrap());
         if supports_activation(&mut socket).await {
+            let path = if install {
+                Some(get_current_path())
+            } else {
+                None
+            };
+
+            let command = get_activator_command(path);
+
             // Attempt to Register ourselves as the UI App..
-            let command = format!("{{ \"Daemon\": {{ \"SetActivatorPath\": {} }} }}", exe);
             println!("Executing: {}", command);
+
             let json = serde_json::from_str::<Value>(&command).unwrap();
             let _ = socket.send(json).await;
         } else {
@@ -311,6 +331,22 @@ async fn manage(install: bool) {
             );
         }
     }
+}
+
+fn get_activator_command(exe: Option<PathBuf>) -> String {
+    let exe = if let Some(exe) = exe {
+        Value::String(get_platform_path(exe))
+    } else {
+        Value::Null
+    };
+
+    // Attempt to Register ourselves as the UI App..
+    format!("{{ \"Daemon\": {{ \"SetActivatorPath\": {}  }} }}", exe)
+}
+
+fn get_platform_path(exe: PathBuf) -> String {
+    let quoter = if cfg!(windows) { "\"" } else { "'" };
+    format!("{}{}{}", quoter, exe.to_string_lossy(), quoter)
 }
 
 fn get_current_path() -> PathBuf {
@@ -350,7 +386,7 @@ fn write_settings(path: &PathBuf, mut value: Value, install: bool) {
     let exe = get_current_path();
 
     value["activate"] = if install {
-        Value::String(format!("{}", exe.to_string_lossy()))
+        Value::String(get_platform_path(exe))
     } else {
         Value::Null
     };

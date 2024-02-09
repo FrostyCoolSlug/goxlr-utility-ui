@@ -1429,6 +1429,7 @@ dependencies = [
  "interprocess",
  "serde",
  "serde_json",
+ "shell-words",
  "tauri",
  "tauri-build",
  "tauri-plugin-shell",
@@ -1440,6 +1441,7 @@ dependencies = [
  "tungstenite",
  "url",
  "windows 0.52.0",
+ "windows-args",
 ]
 
 [[package]]
@@ -3186,6 +3188,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "shell-words"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
+
+[[package]]
 name = "signal-hook-registry"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4417,6 +4425,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "windows-args"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a461b757e38ae4fdf8cb97a017605010589ba4199486ced90a44ab3aade3d7e5"
+dependencies = [
+ "wtf8",
+]
+
+[[package]]
 name = "windows-core"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4727,6 +4744,12 @@ dependencies = [
  "windows-version",
  "x11-dl",
 ]
+
+[[package]]
+name = "wtf8"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6b9309a86639c488a8eb2b5331cb5127cc9feb0a94a0db4b5d1ab5b84977956"
 
 [[package]]
 name = "x11"
