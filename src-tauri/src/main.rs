@@ -172,6 +172,12 @@ async fn get_goxlr_host() -> Result<String, String> {
                             if let Some(address) = address.as_str() {
                                 if let Some(port) = http_settings.get("port") {
                                     if let Some(port) = port.as_u64() {
+                                        let address =
+                                            if address != "localhost" && address == "0.0.0.0" {
+                                                "localhost"
+                                            } else {
+                                                address
+                                            };
                                         Ok(format!("{}:{}", address, port))
                                     } else {
                                         Err("Unable to Parse Port".into())
