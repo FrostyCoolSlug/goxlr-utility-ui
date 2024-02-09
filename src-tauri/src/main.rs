@@ -210,14 +210,14 @@ async fn supports_activation(socket: &mut Socket<Value, Value>) -> bool {
         if let Ok(Some(result)) = socket.try_read().await {
             if let Some(status) = result.get("Status") {
                 if let Some(config) = status.get("config") {
-                    if let Some(_) = config.get("activation") {
+                    if config.get("activation").is_some() {
                         return true;
                     }
                 }
             }
         }
     }
-    return false;
+    false
 }
 
 async fn goxlr_utility_monitor(handle: AppHandle) {
