@@ -428,26 +428,37 @@ fn show_option(title: String, message: String) -> Result<(), ()> {
 
 #[cfg(target_os = "windows")]
 fn show_error(title: String, message: String) {
-    use std::iter::once;
-    use std::ptr::null_mut;
-    use winapi::um::winuser::{MessageBoxW, MB_ICONERROR};
+    use windows::core::HSTRING;
+    use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK};
 
-    let lp_title: Vec<u16> = title.encode_utf16().chain(once(0)).collect();
-    let lp_message: Vec<u16> = message.encode_utf16().chain(once(0)).collect();
+    let title = HSTRING::from(title);
+    let message = HSTRING::from(message);
 
     unsafe {
-        MessageBoxW(
-            null_mut(),
-            lp_message.as_ptr(),
-            lp_title.as_ptr(),
-            MB_ICONERROR,
-        );
+        MessageBoxW(None, &message, &title, MB_ICONERROR | MB_OK);
     }
 }
 
 #[cfg(target_os = "windows")]
-fn show_option(_title: String, _message: String) -> Result<(), ()> {
-    Ok(())
+fn show_option(title: String, message: String) -> Result<(), ()> {
+    use windows::core::HSTRING;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        MessageBoxW, MB_ICONQUESTION, MB_YESNO, MESSAGEBOX_RESULT,
+    };
+
+    let title = HSTRING::from(title);
+    let message = HSTRING::from(message);
+
+    unsafe {
+        let result = MessageBoxW(None, &message, &title, MB_ICONQUESTION | MB_YESNO);
+
+        // Either the windows crate doesn't have the enum, or I can't find it.. Either way..
+        // https://learn.microsoft.com/en-us/dotnet/api/system.windows.messageboxresult
+        if result == MESSAGEBOX_RESULT(6) {
+            return Ok(());
+        }
+        Err(())
+    }
 }
 
 #[cfg(target_os = "macos")]
