@@ -126,8 +126,8 @@ async fn goxlr_preflight() -> Result<(), String> {
                                 if show_option(title, message).is_ok() {
                                     // Attempt to Register ourselves as the UI App..
                                     let command = format!(
-                                        "{{ \"Daemon\": {{ \"SetActivatorPath\": \"{}\"  }} }}",
-                                        exe.to_string_lossy()
+                                        "{{ \"Daemon\": {{ \"SetActivatorPath\": {}  }} }}",
+                                        Value::String(exe.to_string_lossy().to_string())
                                     );
                                     let json = serde_json::from_str::<Value>(&command).unwrap();
                                     let _ = socket.send(json).await;
