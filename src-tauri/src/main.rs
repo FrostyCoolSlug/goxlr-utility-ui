@@ -524,9 +524,11 @@ fn show_option(title: String, message: String) -> Result<(), ()> {
 }
 
 #[cfg(target_os = "macos")]
-fn show_error(_title: String, _message: String) {}
+fn show_error(title: String, message: String) {
+    macos::show_messagebox(title, message);
+}
 
 #[cfg(target_os = "macos")]
-fn show_option(_title: String, _message: String) -> Result<(), ()> {
-    Ok(())
+fn show_option(title: String, message: String) -> Result<(), ()> {
+    macos::show_question(title, message)
 }

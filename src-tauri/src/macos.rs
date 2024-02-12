@@ -2,7 +2,7 @@ use cocoa::appkit::{
     NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular, NSImage,
 };
 use cocoa::base::{id, nil};
-use cocoa::foundation::NSData;
+use cocoa::foundation::{NSData, NSString};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -16,6 +16,13 @@ use tauri::{AppHandle, Config, Manager};
 use crate::SHOW_EVENT_NAME;
 
 const ICON: &[u8] = include_bytes!("../icons/128x128.png");
+
+pub trait NSAlert: Sized {
+    unsafe fn alloc(_: Self) -> id {
+        msg_send![class!(NSAlert), alloc]
+    }
+}
+
 fn fifo_path(config: &Config) -> PathBuf {
     let identifier = config.tauri.bundle.identifier.clone();
     let identifier = identifier.replace(['.', ','].as_ref(), "_");
@@ -77,14 +84,20 @@ pub fn show_dock() {
     // This is a little more involved, when we switch back to the regular policy, the icon will turn into a console.
     unsafe {
         let ns_app: id = msg_send![class!(NSApplication), sharedApplication];
+        let app_icon = NSImage::initWithData_(NSImage::alloc(nil), get_icon());
+        let _: () = msg_send![ns_app, setActivationPolicy: NSApplicationActivationPolicyRegular];
+        let _: () = msg_send![ns_app, setApplicationIconImage: app_icon];
+    }
+}
+
+fn get_icon() -> id {
+    unsafe {
         let data = NSData::dataWithBytes_length_(
             nil,
             ICON.as_ptr() as *const std::os::raw::c_void,
             ICON.len() as u64,
         );
-        let app_icon = NSImage::initWithData_(NSImage::alloc(nil), data);
-        let _: () = msg_send![ns_app, setActivationPolicy: NSApplicationActivationPolicyRegular];
-        let _: () = msg_send![ns_app, setApplicationIconImage: app_icon];
+        NSImage::initWithData_(NSImage::alloc(nil), data)
     }
 }
 
@@ -93,4 +106,48 @@ pub fn hide_dock() {
         let ns_app: id = msg_send![class!(NSApplication), sharedApplication];
         let _: () = msg_send![ns_app, setActivationPolicy: NSApplicationActivationPolicyAccessory];
     }
+}
+
+pub fn show_messagebox(title: String, content: String) {
+    unsafe {
+        let alert: id = msg_send![class!(NSAlert), alloc];
+        let () = msg_send![alert, init];
+        let () = msg_send![alert, autorelease];
+        let () = msg_send![alert, setIcon: get_icon()];
+        let () = msg_send![alert, setMessageText: NSString::alloc(nil).init_str(&title)];
+        let () = msg_send![alert, setInformativeText: NSString::alloc(nil).init_str(&content)];
+        let () = msg_send![alert, setAlertStyle: 2];
+
+        // Get the Window..
+        let window: id = msg_send![alert, window];
+        let () = msg_send![window, setLevel: 10];
+
+        // Send the Alert..
+        let () = msg_send![alert, runModal];
+    }
+}
+
+pub fn show_question(title: String, content: String) -> Result<(), ()> {
+    let result: usize = unsafe {
+        let alert: id = msg_send![class!(NSAlert), alloc];
+        let () = msg_send![alert, init];
+        let () = msg_send![alert, autorelease];
+        let () = msg_send![alert, setIcon: get_icon()];
+        let () = msg_send![alert, addButtonWithTitle: NSString::alloc(nil).init_str("No")];
+        let () = msg_send![alert, addButtonWithTitle: NSString::alloc(nil).init_str("Yes")];
+        let () = msg_send![alert, setMessageText: NSString::alloc(nil).init_str(&title)];
+        let () = msg_send![alert, setInformativeText: NSString::alloc(nil).init_str(&content)];
+        let () = msg_send![alert, setAlertStyle: 1];
+
+        // Get the Window..
+        let window: id = msg_send![alert, window];
+        let () = msg_send![window, setLevel: 10];
+
+        //let ns_app: id = msg_send![class!(NSApplication), sharedApplication];
+        msg_send![alert, runModal]
+    };
+    if result == 1001 {
+        return Ok(());
+    }
+    return Err(());
 }
