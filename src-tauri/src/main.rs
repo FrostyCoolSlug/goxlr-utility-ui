@@ -1,6 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(target_os = "mac")]
+mod macos;
+
 mod ipc;
 
 use directories::ProjectDirs;
@@ -46,14 +49,28 @@ async fn main() -> Result<(), String> {
 
     goxlr_preflight().await?;
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+    let builder = tauri::Builder::default();
+    let builder = if !cfg!(macos) {
+        // Register the Single Instance plugin on Windows and Linux
+        builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
             // Trigger a global event if something (eg, the util) attempts to open this again.
             let _ = app.emit(SHOW_EVENT_NAME, None::<String>);
         }))
+    } else {
+        builder
+    };
+
+    // Carry on with the rest..
+    builder
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            {
+                // Set up our single instance for MacOS
+                macos::setup_si(app.handle().clone());
+            }
+
             let global_window = app.handle().clone();
             app.listen_global(SHOW_EVENT_NAME, move |_| {
                 // Do anything and everything to make sure this Window is visible and focused!
@@ -238,7 +255,7 @@ async fn supports_activation(socket: &mut Socket<Value, Value>) -> bool {
 }
 
 async fn goxlr_utility_monitor(handle: AppHandle) {
-    print!("Spawning the Monitor..");
+    println!("Spawning the Monitor..");
 
     // We're going to dive straight into the thread here..
     let host_result = get_goxlr_host().await;

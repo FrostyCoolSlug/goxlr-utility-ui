@@ -39,6 +39,7 @@ tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-works
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 shell-words = "1.1.0"
+nix = { version = "0.27.1", features=["fs"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-args = "0.2.0"
