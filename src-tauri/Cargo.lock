@@ -1424,10 +1424,12 @@ dependencies = [
 name = "goxlr-utility-ui"
 version = "0.0.3"
 dependencies = [
+ "cocoa",
  "directories",
  "futures",
  "interprocess",
  "nix 0.27.1",
+ "objc",
  "serde",
  "serde_json",
  "shell-words",

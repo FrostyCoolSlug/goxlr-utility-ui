@@ -78,6 +78,11 @@ async fn main() -> Result<(), String> {
                 let _ = window.show();
                 let _ = window.unminimize();
                 let _ = window.set_focus();
+
+                #[cfg(target_os = "macos")]
+                {
+                    macos::show_dock();
+                }
             });
 
             let ready_handle = app.handle().clone();
@@ -98,9 +103,12 @@ async fn main() -> Result<(), String> {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                // MacOS doesn't support single instance, so only hide if we're not there
-                    window.hide().unwrap();
-                    api.prevent_close();
+                window.hide().unwrap();
+                api.prevent_close();
+                #[cfg(target_os = "macos")]
+                {
+                    macos::hide_dock();
+                }
             }
         })
         .run(tauri::generate_context!())
