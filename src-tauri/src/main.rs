@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#[cfg(target_os = "mac")]
+#[cfg(target_os = "macos")]
 mod macos;
 
 mod ipc;
@@ -99,10 +99,8 @@ async fn main() -> Result<(), String> {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 // MacOS doesn't support single instance, so only hide if we're not there
-                if !cfg!(macos) {
                     window.hide().unwrap();
                     api.prevent_close();
-                }
             }
         })
         .run(tauri::generate_context!())
