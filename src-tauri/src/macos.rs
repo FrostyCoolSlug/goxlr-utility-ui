@@ -84,9 +84,8 @@ pub fn show_dock() {
     // This is a little more involved, when we switch back to the regular policy, the icon will turn into a console.
     unsafe {
         let ns_app: id = msg_send![class!(NSApplication), sharedApplication];
-        let app_icon = NSImage::initWithData_(NSImage::alloc(nil), get_icon());
         let _: () = msg_send![ns_app, setActivationPolicy: NSApplicationActivationPolicyRegular];
-        let _: () = msg_send![ns_app, setApplicationIconImage: app_icon];
+        let _: () = msg_send![ns_app, setApplicationIconImage: get_icon()];
     }
 }
 
