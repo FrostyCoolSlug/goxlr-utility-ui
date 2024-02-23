@@ -30,10 +30,10 @@ fn fifo_path(config: &Config) -> PathBuf {
     PathBuf::from(format!("/tmp/{}_instance", identifier))
 }
 
-fn run_fifo(path: &PathBuf, app: AppHandle) {
+fn run_fifo(path: &Path, app: AppHandle) {
     // We don't need to do too much caring here, if anything sends a message to the
     // file, we trigger the 'Show Window' handler..
-    let path_inner = path.clone();
+    let path_inner = path.to_path_buf();
 
     tokio::task::spawn(async move {
         loop {
@@ -148,5 +148,5 @@ pub fn show_question(title: String, content: String) -> Result<(), ()> {
     if result == 1001 {
         return Ok(());
     }
-    return Err(());
+    Err(())
 }
