@@ -9,7 +9,6 @@ mod ipc;
 use directories::ProjectDirs;
 use interprocess::local_socket::tokio::LocalSocketStream;
 use interprocess::local_socket::NameTypeSupport;
-use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::env;
 use std::fs::{create_dir_all, File};
@@ -30,9 +29,6 @@ static STOP_EVENT_NAME: &str = "seppuku";
 
 static SOCKET_PATH: &str = "/tmp/goxlr.socket";
 static NAMED_PIPE: &str = "@goxlr.socket";
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct Host(String);
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
