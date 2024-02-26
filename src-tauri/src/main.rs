@@ -25,6 +25,7 @@ use url::Url;
 static WINDOW_NAME: &str = "main";
 static READY_EVENT_NAME: &str = "READY";
 static SHOW_EVENT_NAME: &str = "si-event";
+static HIDE_EVENT_NAME: &str = "HIDE-UI";
 static STOP_EVENT_NAME: &str = "seppuku";
 
 static SOCKET_PATH: &str = "/tmp/goxlr.socket";
@@ -35,19 +36,29 @@ struct Host(String);
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
+    // If running the utility has an error, make sure log level is debug, and propagate the
+    // error up to the user on Windows.
+    if let Err(e) = run_application().await {
+        show_error("GoXLR Utility UI".into(), e.to_string());
+        return Err(e.to_string());
+    }
+    Ok(())
+}
+
+async fn run_application() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
         if args[1] == "--install" {
-            manage(true).await;
+            manage(true).await?;
             return Ok(());
         }
         if args[1] == "--remove" {
-            manage(false).await;
+            manage(false).await?;
             return Ok(());
         }
     }
 
-    goxlr_preflight().await?;
+    let url = goxlr_preflight().await?;
 
     let builder = tauri::Builder::default();
     let builder = if !cfg!(macos) {
@@ -85,6 +96,16 @@ async fn main() -> Result<(), String> {
                 }
             });
 
+            let hide_handle = app.handle().clone();
+            app.listen_global(HIDE_EVENT_NAME, move |_| {
+                let window = hide_handle.get_window(WINDOW_NAME).unwrap();
+                window.hide().unwrap();
+                #[cfg(target_os = "macos")]
+                {
+                    macos::hide_dock();
+                }
+            });
+
             let ready_handle = app.handle().clone();
             app.listen_global(READY_EVENT_NAME, move |data| {
                 let address = data.payload();
@@ -97,7 +118,7 @@ async fn main() -> Result<(), String> {
                 // Terminate the App..
                 shutdown_handle.exit(0);
             });
-            tokio::task::spawn(goxlr_utility_monitor(app.handle().clone()));
+            tokio::task::spawn(goxlr_utility_monitor(app.handle().clone(), url));
 
             Ok(())
         })
@@ -117,7 +138,7 @@ async fn main() -> Result<(), String> {
     Ok(())
 }
 
-async fn goxlr_preflight() -> Result<(), String> {
+async fn goxlr_preflight() -> Result<String, String> {
     let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
         NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
@@ -125,124 +146,116 @@ async fn goxlr_preflight() -> Result<(), String> {
     .await;
 
     if connection.is_err() {
-        // We only support windows for these currently..
-        let message = String::from("The GoXLR Utility must be running before launching this app.");
-        show_error("GoXLR Utility UI".to_string(), message);
-
-        return Err(String::from(
-            "Unable to connect to the GoXLR Namespace / Unix Socket",
-        ));
+        let message = "The GoXLR Utility must be running before launching this app.";
+        return Err(message.into());
     }
     let mut socket: Socket<Value, Value> = Socket::new(connection.unwrap());
     if socket.send(json!("GetStatus")).await.is_ok() {
         if let Ok(Some(result)) = socket.try_read().await {
-            if let Some(status) = result.get("Status") {
-                if let Some(config) = status.get("config") {
-                    if let Some(activation) = config.get("activation") {
-                        if let Some(path) = activation.get("active_path") {
-                            let exe = get_current_path();
-
-                            let path = {
-                                let mut found = None;
-                                if let Some(path) = path.as_str() {
-                                    #[cfg(not(unix))]
-                                    {
-                                        let mut command = windows_args::Args::parse_cmd(path);
-                                        if let Some(command) = command.next() {
-                                            found.replace(command);
-                                        }
-                                    }
-                                    #[cfg(unix)]
-                                    {
-                                        let command = shell_words::split(path);
-                                        if let Ok(params) = command {
-                                            found.replace(params[0].clone());
-                                        }
-                                    }
-                                }
-                                found
-                            };
-                            println!("{:#?}", path);
-
-                            if path.is_none() || PathBuf::from(path.unwrap()) != exe {
-                                let title = String::from("GoXLR Utility UI");
-                                let message = String::from("Use this app to control your GoXLR?");
-                                if show_option(title, message).is_ok() {
-                                    let command = get_activator_command(Some(exe));
-                                    let json = serde_json::from_str::<Value>(&command).unwrap();
-                                    let _ = socket.send(json).await;
-                                } else {
-                                    return Err(String::from("Unable to obtain user consent"));
-                                }
-                            }
-                        }
-                    }
+            // Firstly, preform the general config check, and see if we need to run a command..
+            if let Some(command) = check_app_runtime(&result)? {
+                // We need to send a command to the GoXLR..
+                if socket.send(command).await.is_ok() {
+                    // We don't actually care about the result, just clear the response..
+                    let _ = socket.try_read().await;
                 }
             }
+
+            // Now, grab the HTTP Address / Port for the utility..
+            return get_goxlr_host(&result);
         }
     }
-
-    Ok(())
+    Err("Unable to locate the Utility's URL".into())
 }
 
-async fn get_goxlr_host() -> Result<String, String> {
-    let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
-        NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
-        NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
-    })
-    .await;
+fn check_app_runtime(status: &Value) -> Result<Option<Value>, String> {
+    if let Some(status) = status.get("Status") {
+        if let Some(config) = status.get("config") {
+            if let Some(activation) = config.get("activation") {
+                if let Some(path) = activation.get("active_path") {
+                    let exe = get_current_path();
 
-    if connection.is_err() {
-        return Err(String::from("Unable to Connect to the Utility"));
-    }
-
-    let mut socket: Socket<Value, Value> = Socket::new(connection.unwrap());
-
-    // We need to dig quite far into the result to get what we need, and pretty much every
-    // node is an Option, so yay.. I should probably unwrap_or_else..
-    return if socket.send(json!("GetStatus")).await.is_ok() {
-        if let Ok(Some(result)) = socket.try_read().await {
-            if let Some(status) = result.get("Status") {
-                if let Some(config) = status.get("config") {
-                    if let Some(http_settings) = config.get("http_settings") {
-                        if let Some(address) = http_settings.get("bind_address") {
-                            if let Some(address) = address.as_str() {
-                                if let Some(port) = http_settings.get("port") {
-                                    if let Some(port) = port.as_u64() {
-                                        let address =
-                                            if address != "localhost" && address == "0.0.0.0" {
-                                                "localhost"
-                                            } else {
-                                                address
-                                            };
-                                        Ok(format!("{}:{}", address, port))
-                                    } else {
-                                        Err("Unable to Parse Port".into())
-                                    }
-                                } else {
-                                    Err("Port Missing from http_status".into())
+                    let path = {
+                        let mut found = None;
+                        if let Some(path) = path.as_str() {
+                            #[cfg(not(unix))]
+                            {
+                                let mut command = windows_args::Args::parse_cmd(path);
+                                if let Some(command) = command.next() {
+                                    found.replace(command);
                                 }
-                            } else {
-                                Err("Unable to parse bind_address as String".into())
                             }
+                            #[cfg(unix)]
+                            {
+                                let command = shell_words::split(path);
+                                if let Ok(params) = command {
+                                    found.replace(params[0].clone());
+                                }
+                            }
+                        }
+                        found
+                    };
+                    println!("{:#?}", path);
+
+                    return if path.is_none() || PathBuf::from(path.unwrap()) != exe {
+                        let title = String::from("GoXLR Utility UI");
+                        let message = String::from("Use this app to control your GoXLR?");
+                        if show_option(title, message).is_ok() {
+                            let command = get_activator_command(Some(exe));
+                            let json = serde_json::from_str::<Value>(&command).unwrap();
+                            Ok(Some(json))
                         } else {
-                            Err("bind_address Missing from http_status".into())
+                            Err("Unable to obtain User Consent".into())
                         }
                     } else {
-                        Err("http_settings missing from Config response".into())
-                    }
-                } else {
-                    Err("config missing from Status response".into())
+                        // We're already setup, nothing more to do here..
+                        Ok(None)
+                    };
                 }
             } else {
-                Err("Status missing from GetStatus response!".into())
+                // The 'Activation' Settings aren't present, pre-1.0.6 utility..
+                return Ok(None);
+            }
+        }
+    }
+    Err("Unable to locate Activation Path".into())
+}
+
+fn get_goxlr_host(status: &Value) -> Result<String, String> {
+    if let Some(status) = status.get("Status") {
+        if let Some(config) = status.get("config") {
+            if let Some(http_settings) = config.get("http_settings") {
+                if let Some(address) = http_settings.get("bind_address") {
+                    if let Some(address) = address.as_str() {
+                        if let Some(port) = http_settings.get("port") {
+                            if let Some(port) = port.as_u64() {
+                                let address = if address != "localhost" && address == "0.0.0.0" {
+                                    "localhost"
+                                } else {
+                                    address
+                                };
+                                Ok(format!("{}:{}", address, port))
+                            } else {
+                                Err("Unable to Parse Port".into())
+                            }
+                        } else {
+                            Err("Port Missing from http_status".into())
+                        }
+                    } else {
+                        Err("Unable to parse bind_address as String".into())
+                    }
+                } else {
+                    Err("bind_address Missing from http_status".into())
+                }
+            } else {
+                Err("http_settings missing from Config response".into())
             }
         } else {
-            Err("Unable to retrieve GetStatus Response".into())
+            Err("config missing from Status response".into())
         }
     } else {
-        Err("Unable to obtain GoXLR Utility Address".into())
-    };
+        Err("Status missing from GetStatus response!".into())
+    }
 }
 
 async fn supports_activation(socket: &mut Socket<Value, Value>) -> bool {
@@ -260,16 +273,8 @@ async fn supports_activation(socket: &mut Socket<Value, Value>) -> bool {
     false
 }
 
-async fn goxlr_utility_monitor(handle: AppHandle) {
-    println!("Spawning the Monitor..");
-
-    // We're going to dive straight into the thread here..
-    let host_result = get_goxlr_host().await;
-    if host_result.is_err() {
-        let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
-        return;
-    }
-    let host = host_result.unwrap();
+async fn goxlr_utility_monitor(handle: AppHandle, host: String) {
+    println!("Spawning the Monitor.. {}", host);
 
     // Grab and Parse the URL..
     let ws_address = format!("ws://{}/api/websocket", host);
@@ -279,11 +284,16 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
     // Attempt to connect to the websocket..
     let result = connect(url);
     if result.is_err() {
+        // Hide the UI itself before showing the error..
+        let _ = handle.emit(HIDE_EVENT_NAME, None::<String>);
+
         // We only support windows for these currently..
         show_error(
             "Unable to Launch UI".to_string(),
             "Unable to connect to the GoXLR Utility".to_string(),
         );
+
+        // Now drop and quit.
         let _ = handle.emit(STOP_EVENT_NAME, None::<String>);
         return;
     }
@@ -305,7 +315,7 @@ async fn goxlr_utility_monitor(handle: AppHandle) {
 }
 
 // Installs this app into the util..
-async fn manage(install: bool) {
+async fn manage(install: bool) -> Result<(), String> {
     println!("Checking if Utility is Running..");
     let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
         NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
@@ -320,7 +330,7 @@ async fn manage(install: bool) {
         let json = if !&path.exists() {
             if !install {
                 // If we're removing, and the path is missing, do nothing.
-                return;
+                return Ok(());
             }
             create_settings_path(&path);
             json!({ "activate": Value::Null })
@@ -348,12 +358,13 @@ async fn manage(install: bool) {
             let json = serde_json::from_str::<Value>(&command).unwrap();
             let _ = socket.send(json).await;
         } else {
-            show_error(
-                String::from("GoXLR Utility UI"),
-                format!("Unable to {}, Please stop the GoXLR Utility first.", method),
-            );
+            return Err(format!(
+                "Unable to {}, Please stop the GoXLR Utility first.",
+                method
+            ));
         }
     }
+    Ok(())
 }
 
 fn get_activator_command(exe: Option<PathBuf>) -> String {
