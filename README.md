@@ -11,16 +11,42 @@ platforms, tested as best as possible, the following are available:
 - AUR contains the package as `goxlr-utility-ui`
 
 ## Installation
-To install, shutdown the GoXLR Utility and run the following commands (replacing `goxlr-utility-ui` with the
-correct binary for your platform):
 
-`goxlr-utility-ui --install`
+The installation method can differ depending on which version of the GoXLR Utility you're running, for easiest
+and best results, we recommend 1.0.6+, but instructions are also present for older versions.
 
-Then start up the utility, it should immediately start using the UI instead of a web browser, if it doesn't work
-or you encouter issues with it, it can be removed by shutting down the GoXLR Utility and running:
+In all cases, replace `goxlr-utility-ui` with the name of the binary relevant to your platform (for example
+`goxlr-utility-ui.exe` or `goxlr-utility-ui.AppImage`).
 
-`goxlr-utility-ui --remove`
+### GoXLR Utility 1.0.6+
+If installed via a package, open the Utility's UI in a browser, navigate to System -> Settings, and select 
+'Application' as the 'UI Handler'. Click on the System Tray, or run the GoXLR Utility from your applications
+menu to fire up the app.
 
+#### Alternative:
+Run the `goxlr-utility-ui` binary (or double click the AppImage) while the utility is running, you should be 
+asked whether you want to use this app to control your GoXLR, click 'Yes', and the app will immediately launch.
+
+#### Alternative:
+From a command line, run `goxlr-utility-ui --install`, and the App will be installed, then click the tray
+icon or run the GoXLR Utility from your applications menu.
+
+### GoXLR Utility 1.0.5 and below
+Shut down the GoXLR Utility and then run `goxlr-utility-ui --install`, once done, start the Utility again.
+
+## Removal
+### GoXLR Utility 1.0.6+
+Navigate to System -> Settings, and change the 'UI Handler' back to 'Browser'.
+
+#### Alternative
+From a command line, run `goxlr-utility-ui --remove`, then either click the System Tray, or run the GoXLR Utility
+from your applications menu.
+
+### GoXLR Utility 1.0.5 and below
+Shut down the GoXLR Utility and then run `goxlr-utility-ui --remove`, once done, start the Utility again.
+
+
+## Note
 This app is bound to the runtime of the Utility, once started it'll remain open until the utility exits.
 If you press the 'Close' button on the Window, it'll simply hide itself away in the background until
 it is needed again. This is primarily to ensure it's responsive, as spawning up a new browser and app 
