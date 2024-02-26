@@ -5,7 +5,7 @@ use cocoa::base::{id, nil};
 use cocoa::foundation::{NSData, NSString};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use nix::fcntl::{open, OFlag};
 use nix::sys::stat::Mode;
