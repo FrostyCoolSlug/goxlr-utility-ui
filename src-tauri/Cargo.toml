@@ -61,7 +61,7 @@ custom-protocol = ["tauri/custom-protocol"]
 name = "goxlr-utility-ui"
 assets = [
     ["target/release/goxlr-utility-ui", "usr/bin/", "755"],
-    ["../ci/resources/goxlr-utility-ui.desktop", "usr/share/applications", "644"],
+    ["../ci/resources/goxlr-utility-ui.desktop", "usr/share/applications/", "644"],
 ]
 section = "sound"
 priority = "optional"
