@@ -1,5 +1,5 @@
 name: Create Release Build
-on: [workflow_dispatch, workflow_call]
+on: [ workflow_dispatch, workflow_call ]
 jobs:
   get_version:
     name: "Version"
@@ -8,7 +8,7 @@ jobs:
   build_windows:
     name: "Create Windows Build"
     runs-on: windows-latest
-    needs: [get_version]
+    needs: [ get_version ]
     steps:
       # Checkout the Utility UI..
       - name: "Check out GoXLR Utility UI"
@@ -45,7 +45,7 @@ jobs:
   build:
     name: "Create Linux Builds"
     runs-on: ubuntu-22.04
-    needs: [get_version]
+    needs: [ get_version ]
     steps:
       - name: "Check out Repository"
         uses: actions/checkout@v4
@@ -82,8 +82,11 @@ jobs:
           key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-release-
 
-      - name: Install cargo-deb, cargo-generate-rpm and tauri-cli
-        run: cargo install --force cargo-deb cargo-generate-rpm tauri-cli
+      - name: Install cargo-deb, cargo-generate-rpm
+        run: cargo install --force cargo-deb cargo-generate-rpm
+
+      - name: Install tauri-cli
+        run: cargo install --force tauri-cli --version '^2.0.0-beta'
 
       - name: "Build Packages"
         run: ./ci/build-packages
