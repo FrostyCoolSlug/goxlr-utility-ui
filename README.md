@@ -67,9 +67,6 @@ Simple instructions:
 * Run `cargo install tauri-cli`
 * Run `cargo tauri build`
 
-**NOTE**: libdeploy is [broken](https://github.com/linuxdeploy/linuxdeploy/issues/272) in recent versions of Arch,
-you may need the `NO_STRIP=true` environment variable when building.
-
 The build may require a few packages from your repo, under linux `webkit2gtk`, `libappindicator` and `gtk` may be
 required for building, [This Link](https://tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux) should
 have all the info needed for building on your system.
