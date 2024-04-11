@@ -24,7 +24,7 @@ pub trait NSAlert: Sized {
 }
 
 fn fifo_path(config: &Config) -> PathBuf {
-    let identifier = config.identifier.clone();
+    let identifier = config.tauri.bundle.identifier.clone();
     let identifier = identifier.replace(['.', ','].as_ref(), "_");
 
     PathBuf::from(format!("/tmp/{}_instance", identifier))
