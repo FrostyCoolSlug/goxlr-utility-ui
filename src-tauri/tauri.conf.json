@@ -1,45 +1,16 @@
 {
+  "productName": "goxlr-utility-ui",
+  "version": "0.0.5",
+  "identifier": "com.frostycoolslug.goxlr-utility-ui",
+
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
-    "devPath": "../src",
-    "distDir": "../src",
-    "withGlobalTauri": true
+    "frontendDist": "../src"
   },
-  "package": {
-    "productName": "goxlr-utility-ui",
-    "version": "0.0.5"
-  },
-  "tauri": {
-    "bundle": {
-      "active": true,
-      "targets": "appimage",
-      "identifier": "com.frostycoolslug.goxlr-utility-ui",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "appimage": {
-        "bundleMediaFramework": true
-      }
-    },
+
+  "app": {
+    "withGlobalTauri": true,
     "security": {
-      "csp": null,
-      "dangerousRemoteDomainIpcAccess": [
-        {
-          "scheme": "http",
-          "domain": "localhost",
-          "windows": [
-            "main"
-          ],
-          "plugins": [
-            "shell"
-          ]
-        }
-      ]
+      "csp": null
     },
     "windows": [
       {
@@ -51,9 +22,21 @@
       }
     ]
   },
-  "plugins": {
-    "shell": {
-      "open": true
+
+  "bundle": {
+    "active": true,
+    "targets": "appimage",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
     }
   }
 }
