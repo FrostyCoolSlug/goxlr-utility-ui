@@ -1,7 +1,7 @@
 {
   "name": "goxlr-utility-ui",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.0.3",
   "type": "module",
   "scripts": {
     "tauri": "tauri"
