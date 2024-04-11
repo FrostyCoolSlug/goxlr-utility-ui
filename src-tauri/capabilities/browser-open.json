@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "browser-open",
+  "description": "Permit the WebUI to Open Links in the systems default browser",
+
+  "windows": [
+    "main"
+  ],
+
+  "local": true,
+  "remote": {
+    "urls": ["http://localhost:*/*"]
+  },
+  "permissions": ["shell:allow-open"],
+  "capabilities": [
+  ]
+}

@@ -79,9 +79,9 @@ async fn run_application() -> Result<(), String> {
             }
 
             let global_window = app.handle().clone();
-            app.listen_global(SHOW_EVENT_NAME, move |_| {
+            app.listen_any(SHOW_EVENT_NAME, move |_| {
                 // Do anything and everything to make sure this Window is visible and focused!
-                let window = global_window.get_window(WINDOW_NAME).unwrap();
+                let window = global_window.get_webview_window(WINDOW_NAME).unwrap();
                 let _ = window.show();
                 let _ = window.unminimize();
                 let _ = window.set_focus();
@@ -93,8 +93,8 @@ async fn run_application() -> Result<(), String> {
             });
 
             let hide_handle = app.handle().clone();
-            app.listen_global(HIDE_EVENT_NAME, move |_| {
-                let window = hide_handle.get_window(WINDOW_NAME).unwrap();
+            app.listen_any(HIDE_EVENT_NAME, move |_| {
+                let window = hide_handle.get_webview_window(WINDOW_NAME).unwrap();
                 window.hide().unwrap();
                 #[cfg(target_os = "macos")]
                 {
@@ -103,14 +103,14 @@ async fn run_application() -> Result<(), String> {
             });
 
             let ready_handle = app.handle().clone();
-            app.listen_global(READY_EVENT_NAME, move |data| {
+            app.listen_any(READY_EVENT_NAME, move |data| {
                 let address = data.payload();
-                let window = ready_handle.get_window(WINDOW_NAME).unwrap();
+                let window = ready_handle.get_webview_window(WINDOW_NAME).unwrap();
                 let _ = window.eval(format!("window.location.replace({})", address).as_str());
             });
 
             let shutdown_handle = app.handle().clone();
-            app.listen_global(STOP_EVENT_NAME, move |_| {
+            app.listen_any(STOP_EVENT_NAME, move |_| {
                 // Terminate the App..
                 shutdown_handle.exit(0);
             });
