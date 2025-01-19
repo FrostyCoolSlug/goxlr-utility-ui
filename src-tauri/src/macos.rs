@@ -5,13 +5,14 @@ use cocoa::base::{id, nil};
 use cocoa::foundation::{NSData, NSString};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::os::fd::OwnedFd;
 use std::path::{Path, PathBuf};
 
 use nix::fcntl::{open, OFlag};
 use nix::sys::stat::Mode;
 use nix::unistd::{mkfifo, write};
 use objc::{class, msg_send, sel, sel_impl};
-use tauri::{AppHandle, Config, Manager};
+use tauri::{AppHandle, Config, Emitter};
 
 use crate::SHOW_EVENT_NAME;
 
@@ -59,7 +60,7 @@ pub fn setup_si(app: AppHandle) {
             let flags = OFlag::O_WRONLY | OFlag::O_NONBLOCK;
 
             let connection = match open(&path, flags, Mode::empty()) {
-                Ok(f) => Some(f),
+                Ok(f) => Some(unsafe { OwnedFd::from_raw_fd(f) }),
                 Err(_) => None,
             };
 
