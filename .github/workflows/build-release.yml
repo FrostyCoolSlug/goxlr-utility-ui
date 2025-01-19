@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: "Install Rust"
-        uses: dtolnay/rust-toolchain@1.76.0
+        uses: dtolnay/rust-toolchain@stable
 
       - name: "Loading Cache"
         uses: actions/cache@v3
@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: "Install Rust"
-        uses: dtolnay/rust-toolchain@1.76.0
+        uses: dtolnay/rust-toolchain@stable
 
       - name: "Update Base"
         run: |
