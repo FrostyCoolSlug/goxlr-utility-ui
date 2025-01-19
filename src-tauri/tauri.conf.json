@@ -2,15 +2,35 @@
   "productName": "goxlr-utility-ui",
   "version": "0.0.5",
   "identifier": "com.frostycoolslug.goxlr-utility-ui",
-
   "build": {
     "frontendDist": "../src"
   },
-
   "app": {
     "withGlobalTauri": true,
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": [
+        {
+          "$schema": "../gen/schemas/desktop-schema.json",
+          "identifier": "browser-open",
+          "description": "Permit the WebUI to Open Links in the systems default browser",
+          "windows": [
+            "main"
+          ],
+          "local": true,
+          "remote": {
+            "urls": [
+              "http://localhost:*/*"
+            ]
+          },
+          "permissions": [
+            "opener:default",
+            "opener:allow-open-url"
+          ],
+          "capabilities": [
+          ]
+        }
+      ]
     },
     "windows": [
       {
@@ -22,7 +42,6 @@
       }
     ]
   },
-
   "bundle": {
     "active": true,
     "targets": "appimage",
