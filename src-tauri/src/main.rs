@@ -31,6 +31,11 @@ static NAMED_PIPE: &str = "@goxlr.socket";
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
+    // Under Wayland on Linux gtkwebkit has a bug which prevents it from launching correctly, the
+    // following sets an ENV flag prior to startup that disables the DMABUF renderer to fix it.
+    #[cfg(target_os = "linux")]
+    env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+
     // If running the utility has an error, make sure log level is debug, and propagate the
     // error up to the user on Windows.
     if let Err(e) = run_application().await {
