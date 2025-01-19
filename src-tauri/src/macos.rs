@@ -5,7 +5,7 @@ use cocoa::base::{id, nil};
 use cocoa::foundation::{NSData, NSString};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::os::fd::OwnedFd;
+use std::os::fd::{FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
 
 use nix::fcntl::{open, OFlag};
