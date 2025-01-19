@@ -57,6 +57,7 @@ windows = { version = "0.59.0", features = [
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+cargo-clippy = []
 
 [package.metadata.deb]
 name = "goxlr-utility-ui"
