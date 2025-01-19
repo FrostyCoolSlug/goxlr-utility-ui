@@ -74,7 +74,7 @@ async fn run_application() -> Result<(), String> {
     // Carry on with the rest..
     builder
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             #[cfg(target_os = "macos")]
             {
