@@ -1,1 +1,1 @@
-{"browser-open":{"identifier":"browser-open","description":"Permit the WebUI to Open Links in the systems default browser","remote":{"urls":["http://localhost:*/*"]},"local":true,"windows":["main"],"permissions":["shell:allow-open"]}}
+{}

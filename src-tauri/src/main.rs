@@ -7,19 +7,18 @@ mod macos;
 mod ipc;
 
 use directories::ProjectDirs;
-use interprocess::local_socket::tokio::LocalSocketStream;
-use interprocess::local_socket::NameTypeSupport;
+use interprocess::local_socket::tokio::prelude::LocalSocketStream;
+use interprocess::local_socket::{GenericFilePath, GenericNamespaced, ToFsName, ToNsName};
 use serde_json::{json, Value};
 use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::ErrorKind;
 
-use std::path::{Path, PathBuf};
-
 use crate::ipc::Socket;
-use tauri::{AppHandle, Manager};
+use interprocess::local_socket::traits::tokio::Stream;
+use std::path::{Path, PathBuf};
+use tauri::{AppHandle, Emitter, Listener, Manager};
 use tungstenite::{connect, Message};
-use url::Url;
 
 static WINDOW_NAME: &str = "main";
 static READY_EVENT_NAME: &str = "READY";
@@ -57,7 +56,7 @@ async fn run_application() -> Result<(), String> {
     let url = goxlr_preflight().await?;
 
     let builder = tauri::Builder::default();
-    let builder = if !cfg!(macos) {
+    let builder = if !cfg!(target_os = "macos") {
         // Register the Single Instance plugin on Windows and Linux
         builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
             // Trigger a global event if something (eg, the util) attempts to open this again.
@@ -135,11 +134,15 @@ async fn run_application() -> Result<(), String> {
 }
 
 async fn goxlr_preflight() -> Result<String, String> {
-    let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
-        NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
-        NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
-    })
-    .await;
+    // Because Windows also supports unix sockets, we need to maintain legacy behaviour..
+    let path = if cfg!(windows) {
+        NAMED_PIPE.to_ns_name::<GenericNamespaced>()
+    } else {
+        SOCKET_PATH.to_fs_name::<GenericFilePath>()
+    }
+    .map_err(|e| format!("Unable to get path to socket: {}", e))?;
+
+    let connection = LocalSocketStream::connect(path).await;
 
     if connection.is_err() {
         let message = "The GoXLR Utility must be running before launching this app.";
@@ -275,10 +278,9 @@ async fn goxlr_utility_monitor(handle: AppHandle, host: String) {
     // Grab and Parse the URL..
     let ws_address = format!("ws://{}/api/websocket", host);
     let http_address = format!("http://{}/", host);
-    let url = Url::parse(ws_address.as_str()).expect("Bad URL Provided");
 
     // Attempt to connect to the websocket..
-    let result = connect(url);
+    let result = connect(ws_address.as_str());
     if result.is_err() {
         // Hide the UI itself before showing the error..
         let _ = handle.emit(HIDE_EVENT_NAME, None::<String>);
@@ -313,11 +315,14 @@ async fn goxlr_utility_monitor(handle: AppHandle, host: String) {
 // Installs this app into the util..
 async fn manage(install: bool) -> Result<(), String> {
     println!("Checking if Utility is Running..");
-    let connection = LocalSocketStream::connect(match NameTypeSupport::query() {
-        NameTypeSupport::OnlyPaths | NameTypeSupport::Both => SOCKET_PATH,
-        NameTypeSupport::OnlyNamespaced => NAMED_PIPE,
-    })
-    .await;
+    let path = if cfg!(windows) {
+        NAMED_PIPE.to_ns_name::<GenericNamespaced>()
+    } else {
+        SOCKET_PATH.to_fs_name::<GenericFilePath>()
+    }
+    .map_err(|e| format!("Unable to get path to socket: {}", e))?;
+
+    let connection = LocalSocketStream::connect(path).await;
 
     if connection.is_err() {
         println!("Utility Not Running, changing config directly..");

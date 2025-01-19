@@ -14,25 +14,25 @@ tauri-build = { version = "2.0.0-beta", features = [] }
 
 [dependencies]
 # Useful GoXLR Stuff..
-tokio = { version = "1.35.0", features = ["full"] }
-tokio-serde = { version = "0.8.0", features = ["bincode", "json"] }
-tokio-util = { version = "0.7.10", features = ["codec", "compat"] }
-interprocess = { version = "1.2.1", features = ["tokio_support"] }
-serde = { version = "1.0.193", features = ["derive"] }
-futures = "0.3.29"
+tokio = { version = "1.43.0", features = ["full"] }
+tokio-serde = { version = "0.9.0", features = ["bincode", "json"] }
+tokio-util = { version = "0.7.13", features = ["codec", "compat"] }
+interprocess = { version = "2.2.2", features = ["tokio"] }
+serde = { version = "1.0.217", features = ["derive"] }
+futures = "0.3.31"
 
 # GoXLR Shared Items
 #goxlr-ipc = { git = "https://github.com/GoXLR-on-Linux/goxlr-utility" }
 
 # Websocket Handling Stuff..
-url = "2.5.0"
-tungstenite = "0.21.0"
+url = "2.5.4"
+tungstenite = "0.26.1"
 
 # Used for Install / Remove..
-serde_json = "1.0.108"
-directories = "5.0.1"
+serde_json = "1.0.136"
+directories = "6.0.0"
 
-tauri = { version = "2.0.0-beta", features = [] }
+tauri = { version = "2.2.3", features = [] }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-shell = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
@@ -47,7 +47,7 @@ cocoa = "0.25.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-args = "0.2.0"
-windows = { version = "0.54.0", features = [
+windows = { version = "0.59.0", features = [
     "Win32_Foundation",
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging"
