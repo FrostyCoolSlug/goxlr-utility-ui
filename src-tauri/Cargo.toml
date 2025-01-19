@@ -1,10 +1,10 @@
 [package]
 name = "goxlr-utility-ui"
-version = "0.0.5"
+version = "0.0.6"
 description = "GoXLR Utility UI"
 authors = ["Craig McLure <craig@mclure.net>"]
 license = "MIT"
-repository = ""
+repository = "https://github.com/FrostyCoolSlug/goxlr-utility-ui"
 edition = "2021"
 
 [build-dependencies]
