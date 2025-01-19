@@ -18,11 +18,11 @@ use crate::SHOW_EVENT_NAME;
 
 const ICON: &[u8] = include_bytes!("../icons/128x128.png");
 
-pub trait NSAlert: Sized {
-    unsafe fn alloc(_: Self) -> id {
-        msg_send![class!(NSAlert), alloc]
-    }
-}
+// pub trait NSAlert: Sized {
+//     unsafe fn alloc(_: Self) -> id {
+//         msg_send![class!(NSAlert), alloc]
+//     }
+// }
 
 fn fifo_path(config: &Config) -> PathBuf {
     let identifier = config.identifier.clone();
