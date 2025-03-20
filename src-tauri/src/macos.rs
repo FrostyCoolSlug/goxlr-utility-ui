@@ -6,14 +6,17 @@ use std::path::{Path, PathBuf};
 use nix::fcntl::{open, OFlag};
 use nix::sys::stat::Mode;
 use nix::unistd::{mkfifo, write};
-use objc2::AllocAnyThread;
 use objc2::rc::Retained;
-use objc2_app_kit::{NSAlert, NSApplication, NSApplicationActivationPolicy, NSCriticalAlertStyle, NSImage, NSInformationalAlertStyle, NSWindowLevel};
+use objc2::AllocAnyThread;
+use objc2_app_kit::{
+    NSAlert, NSApplication, NSApplicationActivationPolicy, NSCriticalAlertStyle, NSImage,
+    NSInformationalAlertStyle, NSWindowLevel,
+};
 use objc2_foundation::{NSData, NSString};
 use tauri::{AppHandle, Config, Emitter};
 
-pub use objc2::MainThreadMarker;
 pub use dispatch2::Queue;
+pub use objc2::MainThreadMarker;
 
 use crate::SHOW_EVENT_NAME;
 
@@ -86,7 +89,9 @@ pub fn show_dock(mtm: MainThreadMarker) {
     // This is a little more involved, when we switch back to the regular policy, the icon will turn into a console.
     let ns_app = NSApplication::sharedApplication(mtm);
     ns_app.setActivationPolicy(NSApplicationActivationPolicy::Regular);
-    unsafe { ns_app.setApplicationIconImage(get_icon().as_deref()); }
+    unsafe {
+        ns_app.setApplicationIconImage(get_icon().as_deref());
+    }
 }
 
 fn get_icon() -> Option<Retained<NSImage>> {
