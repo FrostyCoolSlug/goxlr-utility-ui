@@ -92,7 +92,14 @@ async fn run_application() -> Result<(), String> {
 
                 #[cfg(target_os = "macos")]
                 {
-                    macos::show_dock();
+                    match macos::MainThreadMarker::new() {
+                        Some(mtm) => macos::show_dock(mtm),
+                        None => {
+                            macos::Queue::main().exec_async(|| {
+                                macos::show_dock(macos::MainThreadMarker::new().unwrap())
+                            });
+                        }
+                    };
                 }
             });
 
@@ -102,7 +109,14 @@ async fn run_application() -> Result<(), String> {
                 window.hide().unwrap();
                 #[cfg(target_os = "macos")]
                 {
-                    macos::hide_dock();
+                    match macos::MainThreadMarker::new() {
+                        Some(mtm) => macos::hide_dock(mtm),
+                        None => {
+                            macos::Queue::main().exec_async(|| {
+                                macos::hide_dock(macos::MainThreadMarker::new().unwrap())
+                            });
+                        }
+                    };
                 }
             });
 
@@ -128,7 +142,14 @@ async fn run_application() -> Result<(), String> {
                 api.prevent_close();
                 #[cfg(target_os = "macos")]
                 {
-                    macos::hide_dock();
+                    match macos::MainThreadMarker::new() {
+                        Some(mtm) => macos::hide_dock(mtm),
+                        None => {
+                            macos::Queue::main().exec_async(|| {
+                                macos::hide_dock(macos::MainThreadMarker::new().unwrap())
+                            });
+                        }
+                    };
                 }
             }
         })
@@ -542,10 +563,18 @@ fn show_option(title: String, message: String) -> Result<(), ()> {
 
 #[cfg(target_os = "macos")]
 fn show_error(title: String, message: String) {
-    macos::show_messagebox(title, message);
+    match macos::MainThreadMarker::new() {
+        Some(mtm) => macos::show_messagebox(mtm, title, message),
+        None => {
+            macos::Queue::main().exec_async(|| {
+                macos::show_messagebox(macos::MainThreadMarker::new().unwrap(), title, message);
+            });
+        }
+    };
 }
 
 #[cfg(target_os = "macos")]
 fn show_option(title: String, message: String) -> Result<(), ()> {
-    macos::show_question(title, message)
+    let mtm = macos::MainThreadMarker::new().unwrap();
+    macos::show_question(mtm, title, message)
 }
