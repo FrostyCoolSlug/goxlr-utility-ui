@@ -1,8 +1,3 @@
-use cocoa::appkit::{
-    NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular, NSImage,
-};
-use cocoa::base::{id, nil};
-use cocoa::foundation::{NSData, NSString};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::os::fd::{FromRawFd, OwnedFd};
@@ -11,12 +6,18 @@ use std::path::{Path, PathBuf};
 use nix::fcntl::{open, OFlag};
 use nix::sys::stat::Mode;
 use nix::unistd::{mkfifo, write};
-use objc::{class, msg_send, sel, sel_impl};
+use objc2::AllocAnyThread;
+use objc2::rc::Retained;
+use objc2_app_kit::{NSAlert, NSApplication, NSApplicationActivationPolicy, NSCriticalAlertStyle, NSImage, NSInformationalAlertStyle, NSWindowLevel};
+use objc2_foundation::{NSData, NSString};
 use tauri::{AppHandle, Config, Emitter};
+
+pub use objc2::MainThreadMarker;
+pub use dispatch2::Queue;
 
 use crate::SHOW_EVENT_NAME;
 
-const ICON: &[u8] = include_bytes!("../icons/128x128.png");
+const ICON: &[u8] = include_bytes!("../icons/icon.icns");
 
 // pub trait NSAlert: Sized {
 //     unsafe fn alloc(_: Self) -> id {
@@ -81,70 +82,56 @@ pub fn setup_si(app: AppHandle) {
     }
 }
 
-pub fn show_dock() {
+pub fn show_dock(mtm: MainThreadMarker) {
     // This is a little more involved, when we switch back to the regular policy, the icon will turn into a console.
-    unsafe {
-        let ns_app: id = msg_send![class!(NSApplication), sharedApplication];
-        let _: () = msg_send![ns_app, setActivationPolicy: NSApplicationActivationPolicyRegular];
-        let _: () = msg_send![ns_app, setApplicationIconImage: get_icon()];
-    }
+    let ns_app = NSApplication::sharedApplication(mtm);
+    ns_app.setActivationPolicy(NSApplicationActivationPolicy::Regular);
+    unsafe { ns_app.setApplicationIconImage(get_icon().as_deref()); }
 }
 
-fn get_icon() -> id {
-    unsafe {
-        let data = NSData::dataWithBytes_length_(
-            nil,
-            ICON.as_ptr() as *const std::os::raw::c_void,
-            ICON.len() as u64,
-        );
-        NSImage::initWithData_(NSImage::alloc(nil), data)
-    }
+fn get_icon() -> Option<Retained<NSImage>> {
+    let data = NSData::with_bytes(ICON);
+    NSImage::initWithData(NSImage::alloc(), &data)
 }
 
-pub fn hide_dock() {
-    unsafe {
-        let ns_app: id = msg_send![class!(NSApplication), sharedApplication];
-        let _: () = msg_send![ns_app, setActivationPolicy: NSApplicationActivationPolicyAccessory];
-    }
+pub fn hide_dock(mtm: MainThreadMarker) {
+    let ns_app = NSApplication::sharedApplication(mtm);
+    ns_app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
 }
 
-pub fn show_messagebox(title: String, content: String) {
+pub fn show_messagebox(mtm: MainThreadMarker, title: String, content: String) {
     unsafe {
-        let alert: id = msg_send![class!(NSAlert), alloc];
-        let () = msg_send![alert, init];
-        let () = msg_send![alert, autorelease];
-        let () = msg_send![alert, setIcon: get_icon()];
-        let () = msg_send![alert, setMessageText: NSString::alloc(nil).init_str(&title)];
-        let () = msg_send![alert, setInformativeText: NSString::alloc(nil).init_str(&content)];
-        let () = msg_send![alert, setAlertStyle: 2];
+        let alert = NSAlert::new(mtm);
+        alert.setIcon(get_icon().as_deref());
+        alert.setMessageText(&NSString::from_str(&title));
+        alert.setInformativeText(&NSString::from_str(&content));
+        alert.setAlertStyle(NSCriticalAlertStyle);
 
         // Get the Window..
-        let window: id = msg_send![alert, window];
-        let () = msg_send![window, setLevel: 10];
+        let window = alert.window();
+        window.setLevel(NSWindowLevel::from(10u8));
 
         // Send the Alert..
-        let () = msg_send![alert, runModal];
+        alert.runModal();
     }
 }
 
-pub fn show_question(title: String, content: String) -> Result<(), ()> {
+pub fn show_question(mtm: MainThreadMarker, title: String, content: String) -> Result<(), ()> {
     let result: usize = unsafe {
-        let alert: id = msg_send![class!(NSAlert), alloc];
-        let () = msg_send![alert, init];
-        let () = msg_send![alert, autorelease];
-        let () = msg_send![alert, setIcon: get_icon()];
-        let () = msg_send![alert, addButtonWithTitle: NSString::alloc(nil).init_str("No")];
-        let () = msg_send![alert, addButtonWithTitle: NSString::alloc(nil).init_str("Yes")];
-        let () = msg_send![alert, setMessageText: NSString::alloc(nil).init_str(&title)];
-        let () = msg_send![alert, setInformativeText: NSString::alloc(nil).init_str(&content)];
-        let () = msg_send![alert, setAlertStyle: 1];
+        let alert = NSAlert::new(mtm);
+        alert.setIcon(get_icon().as_deref());
+        alert.addButtonWithTitle(&NSString::from_str("No"));
+        alert.addButtonWithTitle(&NSString::from_str("Yes"));
+        alert.setMessageText(&NSString::from_str(&title));
+        alert.setInformativeText(&NSString::from_str(&content));
+        alert.setAlertStyle(NSInformationalAlertStyle);
 
         // Get the Window..
-        let window: id = msg_send![alert, window];
-        let () = msg_send![window, setLevel: 10];
+        let window = alert.window();
+        window.setLevel(NSWindowLevel::from(10u8));
 
-        //let ns_app: id = msg_send![class!(NSApplication), sharedApplication];
-        msg_send![alert, runModal]
+        // Send the Alert..
+        alert.runModal() as usize
     };
     if result == 1001 {
         return Ok(());
