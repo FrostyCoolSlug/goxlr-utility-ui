@@ -61,27 +61,15 @@ async fn run_application() -> Result<(), String> {
     let url = goxlr_preflight().await?;
 
     let builder = tauri::Builder::default();
-    let builder = if !cfg!(target_os = "macos") {
-        // Register the Single Instance plugin on Windows and Linux
-        builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
+    builder
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            // Register the Single Instance plugin on Windows, Linux and MacOs
             // Trigger a global event if something (eg, the util) attempts to open this again.
             let _ = app.emit(SHOW_EVENT_NAME, None::<String>);
         }))
-    } else {
-        builder
-    };
-
-    // Carry on with the rest..
-    builder
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            #[cfg(target_os = "macos")]
-            {
-                // Set up our single instance for MacOS
-                macos::setup_si(app.handle().clone());
-            }
-
             let global_window = app.handle().clone();
             app.listen_any(SHOW_EVENT_NAME, move |_| {
                 // Do anything and everything to make sure this Window is visible and focused!
